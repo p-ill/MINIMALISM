@@ -1,0 +1,3073 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a10">
+<title>MINIMALISM</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap">
+<style>
+:root{--line:#d8d8d8;--dim:#7a7a82;--faint:#2c2c30;
+  --font:-apple-system,'Apple SD Gothic Neo','Pretendard','Noto Sans KR','Malgun Gothic',system-ui,sans-serif;
+  --mono:'SF Mono',Menlo,Consolas,'Noto Sans Mono CJK KR','Noto Sans KR',monospace}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:#000;color:var(--line);font-family:var(--font);overscroll-behavior:none}
+body{display:flex;justify-content:center}
+#app{width:100%;max-width:480px;height:100dvh;display:flex;flex-direction:column;background:#000;overflow:hidden;
+  padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);position:relative}
+
+/* ---- 상단 화면 ---- */
+#stage{position:relative;width:100%;aspect-ratio:4/3;flex:0 0 auto;background:#000;border-bottom:1px solid var(--faint);overflow:hidden}
+#stage.doc{aspect-ratio:auto;flex:0 1 46dvh;min-height:0}
+#stage.doc.tall{flex:1 1 0}
+#stage.doc ~ #controls{flex:1 1 0;max-height:none;min-height:0}
+#stage.doc.tall ~ #controls{flex:0 0 auto}
+#art{width:100%;height:100%;display:block;image-rendering:pixelated;image-rendering:crisp-edges;background:#000}
+#stage.doc #art{display:none}
+#hud{position:absolute;top:8px;right:8px;display:flex;gap:6px;z-index:3}
+#hud button{height:28px;padding:0 10px;font-size:12px;font-family:var(--font);letter-spacing:.06em;color:#cfcfcf;background:rgba(0,0,0,.72);
+  border:1px solid #55555a;cursor:pointer;line-height:1}
+#hud button:active{background:#e8e8e8;color:#000}
+#flash{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .6s;z-index:2}
+
+/* ---- 문서 패널 (전부 모노톤) ---- */
+#doc{display:none;position:absolute;inset:0;overflow:auto;padding:48px 14px 20px;font-family:var(--mono);font-size:12.5px;line-height:1.75;white-space:pre-wrap;word-break:keep-all;overflow-wrap:anywhere;-webkit-overflow-scrolling:touch}
+#stage.doc #doc{display:block}
+#doc.paper{background:#d4d2cb;color:#14141a}
+#doc.postit{background:#c9c7bf;color:#14141a;font-size:14px}
+#doc.mail{background:#e4e4e4;color:#14141a}
+#doc.phone{background:#0a0a0c;color:#d0d0d4}
+#doc.term{background:#040404;color:#c4c4c8}
+#stage.doc.more::after{content:'▼';position:absolute;left:0;right:0;bottom:0;height:36px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;font-size:12px;color:#fff;background:linear-gradient(to top,rgba(0,0,0,.6),transparent);pointer-events:none;z-index:2}
+#doc .hl{color:#d12c2c;font-weight:bold}
+#doc .bd{font-weight:bold}
+#doc hr{border:0;border-top:1px dashed currentColor;opacity:.4;margin:8px 0}
+
+/* ---- 수첩(개인정보) ---- */
+#stage.doc #doc.memo{display:flex;background:#050505;padding:20px 18px}
+.nb{position:relative;width:100%;max-width:330px;margin:auto;transform:rotate(-1.4deg);filter:drop-shadow(0 12px 20px rgba(0,0,0,.95))}
+.nb-page{background-color:#d6d2c6;
+  background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 31px,rgba(70,68,60,.38) 31px,rgba(70,68,60,.38) 32px);
+  padding:34px 16px 26px 46px;border-left:2px solid rgba(60,58,54,.6);min-height:330px}
+.nb-body{font-family:'Nanum Pen Script','Gaegu','Segoe Print',cursive;font-size:28px;line-height:32px;color:#17171f;white-space:pre-wrap;
+  transform:rotate(.4deg)}
+.nb-tag{position:absolute;top:9px;right:14px;font:10px var(--mono);color:#6d6b63;letter-spacing:.16em}
+.nb-holes{position:absolute;left:11px;top:16px;bottom:16px;width:14px;z-index:1;
+  background:radial-gradient(circle at 7px 7px,#050505 0 5px,transparent 5.6px) 0 0/14px 58px repeat-y}
+
+/* ---- 해설집 ---- */
+#doc.guide{background:#050505;color:#d6d6d6;font-family:var(--font);font-size:14.5px;line-height:1.95;padding:48px 22px 48px;white-space:normal}
+#doc.guide .g-title{font-size:21px;letter-spacing:.22em;color:#fff}
+#doc.guide .g-sub{font-size:11px;color:#7a7a82;letter-spacing:.16em;margin:2px 0 26px}
+#doc.guide .g-h{margin:30px 0 12px;padding-top:14px;border-top:1px solid #2c2c30;font-size:12px;letter-spacing:.18em;color:#9a9aa2}
+#doc.guide p{margin-bottom:12px}
+#doc.guide p.tight{margin-bottom:3px}
+#doc.guide p.li{padding-left:1.1em;text-indent:-1.1em}
+#doc.guide p.cur{color:#fff}
+#doc.guide p.cur::before{content:'▶ 이번 엔딩  ';color:#c9a45e;font-size:12px;letter-spacing:.06em}
+#stage.doc.tall ~ #dialog:empty{display:none}
+
+/* ---- 대사 ---- */
+#dialog{flex:1 1 0;min-height:70px;padding:16px 18px;font-size:15px;line-height:1.85;letter-spacing:.01em;white-space:pre-line;overflow:auto;
+  background:#000;color:#cfcfcf;word-break:keep-all;-webkit-overflow-scrolling:touch}
+#stage.doc ~ #dialog{flex:0 0 auto;max-height:24%;min-height:60px}
+#dialog.sys{color:#f0f0f0;letter-spacing:.03em}
+#dialog .cur::after{content:'▌';animation:bl 1s steps(2) infinite;color:var(--dim)}
+@keyframes bl{50%{opacity:0}}
+
+/* ---- 조작부 ---- */
+#controls{flex:0 0 auto;max-height:46%;overflow:auto;padding:10px 14px 16px;display:flex;flex-direction:column;gap:8px;background:#000;border-top:1px solid var(--faint)}
+.btn{font-family:var(--font);font-size:15px;line-height:1.4;color:#d8d8d8;background:transparent;border:1px solid #4a4a50;
+  padding:13px 14px;min-height:48px;text-align:left;cursor:pointer;letter-spacing:.01em;transition:background .08s,color .08s}
+.btn:active{background:#e8e8e8;color:#000;border-color:#e8e8e8}
+.btn.sub{border-color:#2a2a2e;color:#7a7a82;font-size:14px}
+.btn.accent{border-color:#e8e8e8;color:#fff}
+.btn.ghost{border:0;background:transparent;color:#8d8d95;font-size:13px;min-height:38px;padding:8px;text-align:center;
+  text-decoration:underline;text-underline-offset:5px;text-decoration-color:#4a4a50;letter-spacing:.04em}
+.btn.ghost:active{background:transparent;color:#fff}
+@keyframes hintPulse{0%,100%{border-color:#4a4a50}50%{border-color:#c9a45e}}
+.btn.hint{animation:hintPulse 1.8s ease-in-out infinite}
+.row{display:flex;gap:8px}
+.row .btn{flex:1;text-align:center}
+.txt{font-family:var(--font);font-size:17px;color:var(--line);background:#000;border:1px solid #4a4a50;padding:12px;width:100%;outline:none;letter-spacing:.04em;border-radius:0}
+.txt:focus{border-color:#e8e8e8}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pad .btn{text-align:center;font-size:19px;padding:6px 0;min-height:42px}
+.disp{font-size:22px;letter-spacing:10px;text-align:center;padding:6px;border:1px solid #3a3a40;background:#000;min-height:44px;color:#fff}
+.dirdisp{font-size:20px;text-align:center;padding:10px;border:1px solid #3a3a40;background:#000;min-height:52px;color:#fff;letter-spacing:2px;overflow-x:auto;white-space:nowrap}
+.dir{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.dir .btn{text-align:center;font-size:22px;padding:4px 0;min-height:44px}
+.endlabel{color:#fff;text-align:center;font-size:13px;letter-spacing:.14em;padding:6px 0}
+.shake{animation:sh .35s}
+@keyframes sh{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+
+/* ---- 타이틀 화면 ---- */
+#app.title-mode #stage{aspect-ratio:auto;flex:1 1 0;min-height:0;border-bottom:0}
+#app.title-mode #dialog{display:none}
+#app.title-mode #controls{max-height:none;border-top:0;padding:6px 14px 22px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <canvas id="art"></canvas>
+    <div id="doc"></div>
+    <div id="flash"></div>
+    <div id="hud">
+      <button id="btnInv" aria-label="소지품" hidden>소지품 <span id="invCount">0</span></button>
+      <button id="btnRestart" aria-label="처음부터" hidden>↺</button>
+    </div>
+  </div>
+  <div id="dialog"></div>
+  <div id="controls"></div>
+</div>
+
+<!-- ============================================================
+     1) 스토리 데이터 (원본 story.js 그대로)
+     러버블로 옮길 때는 이 블록을 src/data/story.js 로 분리하면 됩니다.
+     ============================================================ -->
+<script>
+const story = {
+
+    start: {
+
+        screen: "",
+
+        dialog: `...눈을 떴다.
+        두통이 아릿하게 올라온다. 어제 술을 많이 마시는 게 아니었는데.
+        ...불도 안 끄고 자버린 건가.`,
+
+        choices: [
+
+            {
+                text: "몸을 일으킨다.",
+                next: "room"
+            }
+
+        ]
+
+    },
+
+    room: {
+
+        screen: "",
+
+        dialog: `몸을 천천히 일으켰다. 기지개를 느리게 피며 찌뿌둥한 전신을 애써 풀어본다.
+        오늘은... 거래처와의 미팅이 있는 날이다. 지금이 몇 시지. 핸드폰은 또 어디에 뒀더라.`,
+
+        typing: true,
+
+        typed: false,
+
+        choices: [
+
+            {
+                text: "방을 둘러본다.",
+                next: "lookRoom"
+            }
+
+        ]
+
+    },
+
+    lookRoom: {
+
+        screen: 
+`                  창문
+
+침대                        책상
+
+                            달력
+
+               당신
+
+
+                  문
+    `,
+
+        dialog: "내 방이다.",
+
+        choices: [
+
+             {
+            text: "책상으로 간다.",
+            next: "desk"
+        },
+
+        {
+            text: "침대로 간다.",
+            next: "bed"
+        },
+
+        {
+            text: "문으로 간다.",
+            next: "door"
+        },
+
+        {
+            text: "창문으로 간다.",
+            next: "window"
+        },
+
+        {
+            text: "달력으로 간다.",
+            next: "calendar"
+        }
+
+
+        ]
+
+    },
+
+    desk: {
+
+        screen:"",
+
+        dialog: "책상 위에는 노트북과 핸드폰이 놓여 있다.",
+
+        choices: [
+
+            {
+                text: "핸드폰을 조사한다.",
+                next: "phone"
+            },
+
+            {
+                text: "컴퓨터를 조사한다",
+                next: "computer"
+            },
+
+            {
+                text: "서랍을 조사한다.",
+                next: "drawer"
+            },
+
+            {
+                text: "방으로 돌아간다.",
+                next: "lookRoom"
+            }
+
+        ]
+
+    },
+
+    // 핸드폰 -----------------------------------------------------
+
+    phone: {
+
+        screen: "",
+
+        dialog: "충전된 핸드폰이다. 내 핸드폰이 맞는 것 같다.",
+
+        choices: [
+
+            {
+                text: "전원을 켠다.",
+                next: "phoneOn"
+            },
+
+            {
+            text: "책상으로 돌아간다.",
+            next: "desk"
+             }
+
+           ]
+
+    },
+
+    phoneOn: {
+
+        screen: "",
+
+        dialog: "충전이 된 내 핸드폰으로, 잠금이 걸려 있다. 비밀번호는... 내 생일이었던 것 같은데.",
+
+        choices: [
+            {
+            text: "비밀번호를 입력한다.",
+            next: "phonePassword"
+            },
+
+            {
+            text: "핸드폰을 내려놓는다.",
+            next: "desk"
+            }
+            ]
+},
+
+    phonePassword: {
+         screen: "",
+
+          dialog: "비밀번호를 입력하세요.",
+
+          keypad: true,
+
+            answer: "0317",
+
+            success: "phoneUnlocked",
+
+              inputType: "password",
+
+              maxLength: 4,
+
+              placeholder: "숫자 4자리 입력",
+
+              fail: "phoneFail",
+
+            choices: [
+           {
+            text: "취소",
+            next: "phone"
+             }
+         ]
+    },
+
+    phoneUnlocked: {
+
+        screen: "",
+
+        dialog: "잠금이 해제되었다. 확인하지 않은 메시지가 하나 있다.",
+
+        choices: [
+            {
+                text: "메시지를 확인한다.",
+                flag: "phoneState",
+                value: 2,
+                next: "phoneMessage"
+            }
+        ]
+    },
+
+
+    phoneMessage: {
+        screen:  `
+        
+        -------------------------------------------------------------------------------------------------
+        [Web발신]
+        안녕하세요. Jack 고객님. 언제나스마일 치과입니다. 
+        내일은 고객님의 치과 진료가 있는 날이니, 늦지 않게 도착해주시길 바랍니다. 
+        예약 시간: 14:60 
+        -------------------------------------------------------------------------------------------------`,
+
+        dialog: "...벌써 시간이 그렇게 됐나.",
+
+        choices: [
+            { 
+                text: "핸드폰을 끈다.",
+                next: "desk"
+            }
+        ]
+    },
+
+    phoneNormal: {
+
+        screen: "",
+
+        dialog: "핸드폰을 켰다. 누군가에게 전화할 일이 있었나?",
+
+        choices: [
+            {
+                text: "메시지를 다시 확인한다.",
+                next: "phoneMessage"
+            },
+            {
+                text: "핸드폰을 끈다.",
+                next: "desk" 
+
+            },
+            {
+                text: "메모장을 확인한다.",
+                next: "phoneMemo"
+            }
+        ]
+    },
+
+    phoneMemo: {
+        screen: `
+        -------------------------------------------------------------------------------------------------
+        11월 25일. 잊지 말자. 아무리 바빠도 내 생...
+        -------------------------------------------------------------------------------------------------
+
+        -------------------------------------------------------------------------------------------------
+        계란 한 판, 우유 1L, 식빵 두 봉지, 치약, 수...
+        -------------------------------------------------------------------------------------------------
+
+        -------------------------------------------------------------------------------------------------
+        컴퓨터 비밀번호: E + 1 / J - 1 / A + 2 / T / J - 1 / N + 1 / N
+        미친 해킹범 새끼.
+        -------------------------------------------------------------------------------------------------
+        `,
+
+        dialog: ".......\n미친 해킹범 새끼.\n",
+
+        choices: [
+            {
+                text: "핸드폰을 끈다.",
+                next: "desk"
+            }
+        ]
+    },
+
+    phoneFail: {
+        
+        screen: "",
+
+        dialog: "이제는 하다하다 내 생일도 잊어버린 건가. 분명 달력에 표시해뒀을 텐데.",
+
+        choices: [
+            {
+                text: "다시 입력한다.",
+                next: "phonePassword"
+            }
+        ]
+    },
+
+// 컴퓨터 -----------------------------------------------------
+
+    computer: {
+
+         screen: "", // 스크린: password: E + 1 / J - 1 / A + 2 / T / J - 1 / N + 1 / N
+
+         dialog: "컴퓨터가 켜져 있다. \n사라가 미팅 관련 메일을 보내두었을 것이다.\n",
+
+         choices: [
+            {
+                text: "비밀번호를 입력한다.",
+                next: "computerPassword"
+            },
+
+             {
+            text: "책상으로 돌아간다.",
+            next: "desk"
+               }
+
+           ]
+
+    },
+
+    computerPassword: {
+        screen: "",
+        dialog: `이전에 비밀번호 해킹을 당한 적이 있다. 텅 빈 잔고를 보았을 때 그 아찔함이란.
+        이후부터는 조금 번거롭지만 비밀번호를 자주 바꾸는 습관을 들였다. 웬만하면 유추하지 못할 만큼 복잡하게.
+        ...워낙 복잡한 탓에 나조차도 헷갈릴 지경이었지만. 그때 비밀번호를 적어서... 어디에 두었더라.`,
+
+        keypad: true,
+
+    answer: "FICTION",
+
+    state: "computerState",
+
+    inputType: "text",
+
+    maxLength: 7,
+
+    placeholder: "영문 7자리 입력",
+
+    success: "computerDesktop",
+
+    fail: "computerFail",
+
+    choices: [
+        {
+            text: "취소",
+            next: "lookRoom"
+        }
+    ]
+
+},
+
+computerFail: {
+
+    screen: "",
+
+    dialog: "이건 아마 이전 비밀번호인 것 같아. \n지금 비밀번호는 핸드폰 메모장에 써두었을 테다.\n",
+
+    choices: [
+
+        {
+            text: "다시 입력한다.",
+            next: "computerPassword"
+        },
+
+        {
+            text: "컴퓨터를 종료한다.",
+            next: "computer"
+        }
+
+    ]
+
+},
+
+computerDesktop: {
+    screen: "",
+
+    dialog: "컴퓨터의 바탕화면이다. 여러 가지 아이콘이 보인다.",
+
+    choices: [
+        { 
+            text: "이메일을 확인한다.",
+            next: "computerEmail"
+        },
+        {
+            text: "지도 사이트에 접속한다.",
+            next: "computerMap"
+        },
+        {
+            text: "컴퓨터를 종료한다.",
+            next: "desk"
+        }
+    ]
+},
+
+// 이메일 -----------------------------------------------------
+
+computerEmail: {
+    screen: `
+    
+    읽지 않은 편지함 (2)
+
+----------------------------------------
+
+▶ Sarah
+
+제목
+[외근 관련 안내]
+
+----------------------------------------
+
+▶ Weekly Newsletter
+
+제목
+[이번 주의 주요 소식을 전해드립니다.]
+
+----------------------------------------
+
+`,
+
+    dialog: "메일함도 조만간 싹 정리해야겠다. \n잠깐, 내가 뉴스레터를 구독한 적이 있던가?\n",
+
+    choices: [
+        {
+            text: "사라에게 온 메일을 확인한다.",
+            next: "sarahEmail"
+        },
+        {
+            text: "뉴스레터를 확인한다.",
+            next: "newsletterEmail" 
+        },
+        {
+            text: "이메일을 종료한다.",
+            next: "computerDesktop",
+        }
+
+    ]
+},
+       
+sarahEmail: {
+    screen: `
+    
+    -------------------------------------------------------------------------------------------------
+    제목: [외근 관련 안내]
+    
+    To. Jack
+
+    좋은 아침이에요. Jack! 
+    오늘 외근 나가는 거, 잊지 않으셨죠? 
+    여기 거래처, 진짜 힘들게 뚫은 거니까 마지막 영업 잘하고 와야 돼요. 
+    Jack의 시험 통과도 이 일에 달려 있다구요! 
+    계약 서류 한 번 더 확인하시고, 필요한 물건 꼭 챙겨서 가세요. 화이팅! 
+
+    ps. 설마, 고객사 주소를 까먹진 않았겠죠? 
+    기억이 안 난다면... 서류에 써 있을 거예요.
+    지도 사이트 켜서, 최적 경로 보고 찾아가요. 
+    거기 팀장, 약속 시간 준수를 굉장히 중요시 여긴대요. (당연한 거겠지만.)
+    최소 십 분 전에는 도착하기. 꼭이에요!
+
+    언제나 응원하는 Sarah가.
+    -------------------------------------------------------------------------------------------------
+
+    `,
+
+    dialog: "...정성스럽기도 하지. \n사라가 없었다면 과연 내가 지금까지 이 일을 할 수 있었을까?\n \n사라의 응원이 물거품이 되지 않도록, 나도 정신차리고 나갈 준비를 해야겠다.\n \n우선... 서랍 안에 있는 계약 서류부터 확인해볼까.\n",
+
+    choices: [
+        {
+            text: "서랍으로 간다.",
+            next: "drawer"
+        },
+        {
+            text: "메일함을 확인한다.",
+            next: "computerEmail"
+        },
+        {
+            text: "이메일을 종료한다.",
+            next: "computerDesktop"
+
+        }
+    ]
+},
+
+newsletterEmail: {
+    screen: `
+
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                     Weekly Newsletter
+           이번 주의 주요 소식을 전해드립니다.
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    【특집 기사】
+
+    '공존 협정' 체결 100주년 기념식 개최
+
+    정부는 오는 3월 20일부터 전국 주요 도시에서 '공존 협정 체결 100주년' 기념 행사를 개최한다고 밝혔습니다.
+
+    행사에서는 협정 체결 당시의 역사 자료와 양 종족이 함께 이뤄낸 사회 발전 사례가 전시되며,
+    ■■■ 누구나 무료로 관람할 수 있습니다.
+    또한, ■■■ 소속증을 지참한 MNM 회원 역시 무료로 입장할 수 있습니다.
+
+    정부 관계자는
+
+    "지난 100년간 인간과 ■■■는 상호 존중과 신뢰를 바탕으로 평화로운 사회를 만들어 왔다."
+
+    라며,
+
+    "앞으로도 서로를 이해하고 공존하는 사회를 위해 노력하겠다."
+
+    고 밝혔습니다.
+
+    기념식은 전국으로 생중계될 예정이며, 행사 당일에는 일부 도로의 교통 통제가 예정되어 있으니 ■■■ 여러분의 협조를 부탁드립니다.
+
+
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    【생활 정보】
+
+    □ ■■■ 행복지수 98.7% 달성
+
+    정부는 올해 ■■■ 행복지수가 역대 최고치를 기록했다고 발표했습니다.
+
+    □ 야간 통행 안내
+
+    이번 달부터 야간 안전 강화를 위해 22시 이후 일부 인간 거주 지역에서 ■■■의 출입이 제한될 예정입니다.
+
+    □ ■■■ 행동 수칙 개정
+
+    공공장소에서 인간을 불필요하게 촬영하거나 접촉하는 행위는 과태료 부과 대상이 될 수 있습니다.
+    상호 존중하는 공존 사회를 위해 ■■■ 여러분의 협조를 부탁드립니다.
+
+
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    광고 | "기억이 흐릿한 날이 있으신가요?"
+
+    정기 기억 안정 검진을 통해 건강한 일상을 유지하세요.
+
+    지정 의료기관에서 무료 상담을 받아보실 수 있습니다.
+
+    [자세히 보기]
+
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    ※ 본 메일은 뉴스레터 구독에 동의한 회원에게 발송되었습니다.
+
+    수신 거부 | 개인정보 처리방침
+    
+`,
+    dialog: "...요즘은 스팸도 정성스럽구만. 시간만 버렸어.",
+
+    choices: [
+        {
+            text: "이메일을 종료한다.",
+            next: "computerDesktop"
+        },
+        {
+            text: "이메일을 삭제한다.",
+            flag: "newsletterState",
+            value: 1,
+            next: "newsletterDelete"
+        }
+    ]
+},
+
+newsletterDelete: {
+    screen: `
+    짧게 지지직거리면서 보이는 화면 - 기억 변환  오류 확인
+    이후 화면이 바뀌며 다시 computerDesktop 화면으로 돌아감`,
+    
+    dialog: "무사히 삭제되었다.",
+
+    choices: [
+        {
+            text: "이메일을 종료한다.",
+            next: "computerDesktop"
+        }
+    ]
+},
+
+computerEmailAfterDelete: {
+
+    screen: `
+
+----------------------------------------
+
+▶ Sarah
+
+제목
+[외근 관련 안내]
+
+----------------------------------------
+`,
+
+    dialog: "이제야 메일함이 좀 깔끔해졌다.",
+
+    choices: [
+
+        {
+            text: "사라에게 온 메일을 확인한다.",
+            next: "sarahEmail"
+        },
+
+        {
+            text: "이메일을 종료한다.",
+            next: "computerDesktop"
+        }
+
+    ]
+
+},
+
+// 지도 -----------------------------------------------------
+computerMap: {
+    screen: "네이버 지도 모양 카피 + 모니터 화면 아래 시간 보일 것",
+    dialog: "약속 시간에 맞추려면 최적 경로를 찾아야겠어. 주소가 뭐라고 했지?",
+    choices: [
+        { 
+            text: "주소를 검색한다.",
+            next: "mapSearch"
+        },
+        {
+            text: "소지품을 확인한다.",
+            next: "inventory"
+        },
+        {
+            text: "지도 사이트를 종료한다.",
+            next: "computerDesktop"
+        }
+    ]
+},
+
+mapSearch: {
+    screen: "검색창 + 시간 보일 것",
+
+    dialog: `
+    [장소, 버스, 지하철 주소 검색]
+    [장소 검색 시 지번까지만 입력해주세요. 
+    예시: 공동시 행천동 776-8]
+    `,
+
+    keypad: true,
+
+    answer: "세움시 천문동 신생로 888-7",
+
+    state: "mapState",
+
+    inputType: "text",
+
+    maxLength: 100,
+
+    placeholder: "주소 입력",
+
+    success: "mapSuccess",
+
+    fail: "mapFail",
+
+    choices: [
+        {
+            text: "취소",
+            next: "computer"
+        }
+    ]
+    },
+
+    mapSuccess: {
+        screen: 
+        `
+        경로를 탐색하는 중입니다. 
+        .
+        .
+        .
+        세 개의 경로를 찾았습니다.
+        `,
+
+        flag:"mapState",
+        value:1,
+        dialog: "",
+        choices: [
+            {
+                text: "확인한다.",
+                next: "mapWay"
+            }
+        ]
+
+    },
+
+mapWay: {
+    screen: "경로 선택지 세 개 (그래픽) + 시간 보일 것",
+    
+    dialog: `
+    
+    ...시간이 넉넉하진 않겠어. 미팅 시간보다 10분 일찍 도착해야 하니, 경로만 확인하고 얼른 나가야겠다.
+
+    ! '최적 경로' 를 기억했습니다. 
+    `,
+
+    choices: [
+        {
+            text: "문으로 이동한다.",
+            item: "mapMemory",
+            next: "door"
+        },
+        {
+            text: "소지품을 확인한다.",
+            item: "mapMemory",
+            next: "inventory"
+        },
+        {
+            text: "거실로 이동한다.",
+            item: "mapMemory",
+            next: "lookRoom"
+        }
+    ]
+
+
+},
+
+mapOpened: {
+    screen: "경로 선택지 세 개 (그래픽) + 시간 보일 것",
+
+    dialog: `
+    느적거릴 시간이 없다. 경로는 미리 외워두는 게 낫겠어.
+    `,
+
+    choices: [
+        {
+            text: "문으로 이동한다.",
+            next: "door",
+        },
+        {
+            text: "소지품을 확인한다.",
+            next: "inventory"
+        },
+        {
+            text: "거실로 이동한다.",
+            next: "lookRoom"
+        }
+    ]
+},
+
+mapFail: {
+    screen: "",
+    dialog: `
+    
+    ...여기가 아닌데? 엉뚱한 곳을 입력했잖아.
+    `,
+    choices: [
+        {
+            text: "다시 입력한다",
+            next: "mapSearch"
+        },
+        {
+            text: "소지품을 확인한다.",
+            next: "inventory"
+        }
+    ]
+},
+
+
+
+// 서랍 -----------------------------------------------------
+
+    drawer: {
+
+      screen: "",
+
+      dialog: "서랍 안에는 사라가 준 서류 가방이 있다.",
+      choices: [
+
+        {
+            text: "서류 가방을 꺼낸다.",
+            next: "contractbag"
+        },
+
+        {
+            text: "책상으로 돌아간다.",
+            next: "desk"
+        }
+
+      ]
+
+},
+
+ contractbag: {
+    screen: "",
+
+    dialog: `
+    사라는 평소 퀴즈를 좋아했다. 허구한 날 십자말풀이를 들고 와 풀어보라며 내게 건네주곤 했지.
+    ...서류 가방의 비밀번호도 퀴즈로 낼 필요는 없었겠지만 말이다.
+    분명 이메일 본문에 비밀번호를 숨겨두었을 것이다. 
+    `,
+
+    choices: [
+        {
+            text: "서류 가방의 비밀번호를 입력한다.",
+            next: "contractbagPassword"
+        },
+        {
+            text: "책상으로 돌아간다.",
+            next: "desk"
+        }
+    ]
+},
+
+contractbagPassword:{
+    screen: "",
+    dialog: "비밀번호를 입력하세요.",
+
+     keypad: true,
+
+    answer: "01410",
+
+    state: "contractbagState",
+
+    inputType: "text",
+
+    maxLength: 5,
+
+    placeholder: "숫자 5자리 입력",
+
+    success: "contractbagOpen",
+
+    fail: "contractbagFail",
+
+    choices: [
+        {
+            text: "취소",
+            next: "desk"
+        }
+    ]
+
+    
+},
+
+contractbagOpen: {
+    screen: "",
+
+    dialog: "서류 가방이 열렸다. 안에는 사원증과 서류가 있다.",
+
+    choices: [
+        {
+            text: "서류를 확인한다.",
+            flag:"contractbagState",
+            value:2,
+            next: "contract"
+        },
+        {
+            text: "사원증을 확인한다.",
+            flag:"contractbagState",
+            value:2,
+            next: "idCard",
+        },
+        { 
+            text: "책상으로 돌아간다.",
+            flag:"contractbagState",
+            value:2,
+            next: "desk"
+        }
+    ],
+},
+
+contractbagFail: {
+    screen: "",
+    dialog: "이런, 사라가 실망하겠는데. 이런 퀴즈도 못 푸냐고 말이야.",
+    choices: [
+        { 
+            text: "다시 입력한다.",
+            next: "contractbagPassword"
+        },
+        {
+            text: "책상으로 돌아간다.",
+            next: "desk"
+        }
+    ]
+},
+
+contractbagOpened:{
+
+    screen:"",
+
+    dialog:"서류 가방은 열려 있다.",
+
+    choices:[
+
+        {
+            text:"계약서를 확인한다.",
+            next:"contract"
+        },
+
+        {
+            text:"사원증을 확인한다.",
+            next:"idCard"
+        },
+
+        {
+            text:"책상으로 돌아간다.",
+            next:"desk"
+        }
+
+    ]
+
+},
+
+contract: {
+    screen: "",
+    dialog: `
+    
+    계약서다. 오늘 미팅 내용이 담긴 서류가 들어 있다.
+    ...맨 앞장에는 사라가 붙여놓은 포스트잇도 있다. 준비물을 챙기라는 내용이다.
+
+    `,
+
+    choices: [
+        {
+            text: "계약 서류를 확인한다.",
+            next: "contractContent"
+        },
+        {
+            text: "포스트잇을 확인한다.",
+            next: "postit"
+        }
+    ]
+},
+
+contractContent: {
+    screen: `
+
+    ────────────────────────────────────────────
+              독점 공급 계약 미팅 안내
+    ─────────────────────────────────────────────
+
+    문서번호 : ND-SC-2411-017
+    작성일 : ■■■년 11월 18일
+
+    ■ 거래처
+    (주) 나다움
+
+    ■ 미팅 대상
+    (주) 뉴라이프
+
+    ■ 안건
+    독점 공급 계약 체결 및 세부 조건 협의
+
+    ■ 회의 일시
+    ■■■년 11월 27일(수) 10:00
+
+    ■ 회의 장소
+    세움시 천문동 신생로 888-7
+    2층 회의실
+
+    ■ 주요 내용
+    - 독점 공급 계약서 최종 검토
+    - 공급 단가 및 계약 기간 협의
+    - 납품 일정 확정
+    - 계약서 서명
+
+    ※ 참석자는 회의 시작 10분 전까지 도착하여
+    계약 관련 자료를 사전 확인해 주시기 바랍니다.
+
+    ────────────────────────────────────────────
+    `,
+
+    dialog: `
+    
+    ...보자. 회의 장소와 회의 시간이.......
+
+    
+    ! '서류'를 얻었습니다.
+
+    `,
+    
+    
+    choices: [
+        {
+            text: "책상으로 돌아간다.",
+            item: "contractItem",
+            next: "desk"
+        },
+        {
+            text: "포스트잇을 확인한다.",
+            item: "contractItem",
+            next: "postit"
+        },
+        {
+            text: "사원증을 확인한다.",
+            item: "contractItem",
+            next: "idCard"
+        }
+    ]
+},
+
+postit: {
+    screen: `
+    
+-----------------------------------------------------
+
+                                          
+     Jack이 반드시!! 챙겨야 할 준비물           
+                                          
+     □ 녹음기                                
+     □ 사원증                                
+     □ 볼펜                                  
+     □ 지갑                                  
+     □ 계약 서류                              
+                                           
+        Good Luck! :)                           
+                                           
+        Sarah                                 
+                                           
+-----------------------------------------------------
+
+
+
+`,
+
+dialog: "오케이. 녹음기랑, 사원증, 볼펜... 다 있군. \n늦지 않게 도착만 하면 되겠어.\n",
+
+choices: [
+    {
+        text: "서류를 확인한다.",
+        next: "contractContent"
+    },
+    {
+        text: "책상으로 돌아간다.",
+        next: "desk"
+    },
+    {
+        text: "사원증을 확인한다.",
+        next: "idCard"
+    }
+]
+},
+
+idCard: {
+    screen: "사원증 두 개 - 김정원, Jack",
+    dialog: "사원증이다. \n거래처가 건물 보안 게이트에 내 사원증 정보를 미리 입력해두었을 것이다.\n",
+    choices: [
+        {
+            text: "'Jack' 사원증을 챙긴다.",
+            item: "JackidItem",
+            flag: "idCardState",
+            value: 1,
+            next: "jackID"
+        },
+        {
+            text: "'김정원' 사원증을 챙긴다.",
+            item: "KimidItem",
+            flag: "idCardState",
+            value: 1,
+            next: "kimID"
+        }
+    ]
+},
+
+jackID: {
+    screen: "",
+    dialog: `
+    
+    사원증을 챙겼다.
+    
+    ! 'JACK' 사원증을 얻었습니다.
+    
+    `,
+
+    choices: [
+        {text: "책상으로 돌아간다.",
+            next: "desk"
+        }
+    ]
+},
+
+kimID: {
+     screen: "",
+    dialog: `
+    
+    사원증을 챙겼다.
+
+    ! '김정원' 사원증을 얻었습니다.
+
+    `, 
+
+    choices: [
+        {text: "책상으로 돌아간다.",
+            next: "desk"
+        }
+    ]
+},
+
+idCardTaken: {
+
+    screen: "",
+
+    dialog: `
+    
+    사원증은 이미 하나 챙겼다.
+    
+    `,
+
+    choices: [
+
+        {
+            text: "책상으로 돌아간다.",
+            next: "desk"
+        }
+
+    ]
+
+},
+
+
+// 침대 -----------------------------------------------------
+
+    bed: {
+
+        screen:"",
+
+        dialog: "방금까지 누워 있던 침대다.",
+
+        choices: [
+
+            {
+                text: "뒤로 간다.",
+                next: "lookRoom"
+            }
+
+        ]
+
+    },
+
+    // 문 -----------------------------------------------------
+
+    door: {
+
+        screen: "",
+
+    dialog: "현관문이다. 벌써 나가기에는, 뭘 잊은 것 같은데.",
+
+    choices: [
+
+        {
+            text: "방으로 돌아간다.",
+            next: "lookRoom"
+        }
+
+    ]
+
+},
+
+doorReady: {
+    screen: "",
+
+    dialog: `
+    
+    나갈 준비를 모두 끝냈다. 아까 외워둔 경로만 다시 확인해볼까.
+    
+    `,
+
+    choices: [
+        { 
+            text: "기억을 떠올려본다.",
+            next: "directionPassword"
+        },
+        {
+            text: "거실로 이동한다.",
+            next: "lookRoom"
+        },
+        {
+            text: "인벤토리를 확인한다.",
+            next: "inventory"
+        }
+    ]
+},
+
+directionPassword: {
+    screen: "",
+    dialog: "그러니까, 내가 가야 하는 방향이...",
+    directionPad: true,
+    answer: ["U","R","D","R","U","L","U"],
+    success: "doorOpen",
+    choices: [
+        {
+            text: "취소",
+            next: "lookRoom"
+        }
+    ]
+       
+
+},
+
+directionFail: {
+    screen: "",
+    dialog: "...이 길이 아니었던 것 같은데. 다시 생각해보자. 무슨 일이 있어도 지각은 안 돼.",
+    
+    choices: [
+        {
+            text: "다시 입력한다.",
+            next: "directionPassword"
+        },
+        {
+            text: "인벤토리를 확인한다.",
+            next: "inventory"
+        }
+    ]
+},
+
+doorOpen: {
+
+    screen: "문 열리고 환해지는 아스키아트, 다시 암전",
+
+    dialog: "문이 열렸다.",
+    choices: [
+        {
+        text: "다음",
+        next: "taxiRide"
+        }
+    ]
+},
+
+// 창문 -----------------------------------------------------
+
+window: {
+    screen: "",
+
+    dialog: "창밖은 평범한 아침 풍경이다. 하늘은 언제나 붉다.",
+
+    choices: [
+
+        {
+            text: "방으로 돌아간다.",
+            next: "lookRoom"
+        }
+
+    ]
+
+},
+
+// 달력 -----------------------------------------------------
+
+calendar: {
+    screen: "",
+
+    dialog: "달력이다. \n바쁘게 살다 보면 잊는 게 한두 가지가 아닌데, 내 생일만큼은 잊고 싶지 않아 매년 기록해둔다.\n",
+
+    choices: [
+
+        {
+            text: "내 생일을 찾는다.",
+            next: "birthday"
+        },
+
+        {
+            text: "뒤로 간다.",
+            next: "lookRoom"
+        }
+    ]
+},
+
+birthday: {
+    screen: "",
+
+    dialog: `
+    
+    3월 17일에 빨간 동그라미가 크게 쳐져 있다.
+    맞다, 내 생일. 내 생일은 3월 17일... 이었나?
+    `,
+
+    choices: [
+
+        {
+            text: "뒤로 간다.",
+            next: "lookRoom"
+        }
+    ]
+
+
+
+},
+
+// Last chapter ------------------------------------------------
+
+taxiRide: {
+
+    cutscene: true,
+// frame 1, 2는 모두 차 내부 덜컹거리는 애니메이션 추가한 것 (나머지는 동일)
+    frames: [
+
+          [
+            "택시 내부 - 덜컹거림 1",
+            "택시 내부 - 덜컹거림 2",
+            "택시 내부 - 덜컹거림 3"
+        ],
+
+        [
+            "택시 내부 - 덜컹거림 1",
+            "택시 내부 - 덜컹거림 2",
+            "택시 내부 - 덜컹거림 3"
+        ],
+
+        [
+            " 기사가 백미러를 바라봄 1",
+            " 기사가 백미러를 바라봄 2",
+            "기사가 백미러를 바라봄 3"
+        ],
+
+        [ 
+            "기사가 다시 앞을 봄 1",
+            "기사가 다시 앞을 봄 2",
+            "기사가 다시 앞을 봄 3"
+        ],
+
+        [ 
+            " 차츰 페이즈 아웃되는 화면 1",
+            " 차츰 페이즈 아웃되는 화면 2",
+            " 차츰 페이즈 아웃되는 화면 3"
+        ]
+    ],
+    
+    dialogs: [
+    
+    `...어라, 볼펜이... 분명 서류 챙길 때 같이 챙겼었는데.`,
+
+    ` 목적지 근처에 편의점이 있을까요? `,
+    
+    `네, 네네. 거기 내려주시면 감사하겠습니다.`,
+
+    ` 내 정신 좀 봐... 편의점에 볼펜 한 자루쯤이야 있겠지. 얼른 사고 나가야겠어.`,
+    ``
+    ],
+
+    buttons: [
+        "저기, 기사님.",
+
+        `"...편의점이요? 골목 맞은편에, 한 군데 있을 건데."`,
+
+        `"...예."`,
+
+        ` 감사합니다, 기사님. 잔돈은 됐습니다. `,
+
+        `택시에서 내린다`
+    ],
+
+    mode: [
+        "loop",
+        "loop",
+        "loop",
+        "loop",
+        "once"
+    ],
+
+    speed: [
+
+        600,
+        600,
+        600,
+        600,
+        800
+    ],
+    next: "store"
+    
+},
+
+// 편의점 도착 ----------------------------------------------------
+
+store: {
+    screen: "편의점 내부",
+
+    dialog: ` 
+    ... 직원이 보이지 않는다. 
+    `,
+
+    choices: [
+        {
+            text: "카운터로 다가간다.",
+            next: "counter"
+        },
+        {
+            text: "제품 진열대를 둘러본다.",
+            next: "sales"
+        }
+    ]
+
+},
+
+counter: {
+
+    flag: "counterState",
+    value: 1,
+    screen: `
+    쪽지 - 
+    [ 잠시 화장실 좀 다녀오겠습니다. 셀프 계산대를 이용해 주세요.
+     구매를 원하시는 분께서는 아래 메뉴얼을 참고하시어 상품 번호를 입력해주시면 자동으로 결제 처리됩니다.
+     이용에 불편을 끼쳐드려 죄송합니다. ],
+     `,
+
+     dialog: "...하아... 되는 일이 없구만.",
+     choices: [
+        {
+            text: "메뉴얼을 확인한다.",
+            next: "menual"
+        },
+        {
+            text: "제품 진열대를 둘러본다.",
+            next: "sales"
+        }
+     ]
+},
+
+sales: {
+    flag: "salesState",
+    value: 1,
+    screen: ` 
+    문구 진열대 모습 
+    `,
+    
+    dialog: `
+    어디 보자. 볼펜이... 아, 여기 있다. 
+    
+    ! '볼펜' 을 얻었습니다. `,
+
+    choices: [
+        {
+            text: "카운터로 간다.",
+            next: "counter",
+            item: "pen"
+        }
+    ]
+},
+
+sales2: {
+    screen: `
+    문구 진열대 모습
+    `,
+
+    dialog: `
+    더 살 건 없어. 아이 쇼핑 따위로 낭비할 시간이 없다. 
+    `,
+
+    choices: [
+        {
+            text: "카운터로 간다.",
+            next: "counter"
+        }
+    ]
+},
+
+counter2: {
+    screen: "메뉴얼이 놓인 카운터. ",
+    dialog: "카운터 위에는 쪽지 한 장과 결제 메뉴얼이 놓여 있을 뿐이다.",
+    choices: [
+        {
+            text: "메뉴얼을 확인한다.",
+            next: "menual"
+        },
+        {
+            text: "진열대로 간다.",
+            next: "sales"
+        }
+    ]
+},
+
+menual: {
+    screen: 
+    `
+    scene.js - function (menual) 참고
+    `,
+
+    dialog: "...빨리 사고 나가자. 이러다 지각할지도 모르겠어.",
+
+    special: "menual",
+
+    choices: []
+},
+
+notMenual: {
+    screen: "",
+
+    dialog: "메뉴얼은 나중에 계산할 때 보고, 우선은 진열대에서 펜을 가져와야 해.",
+
+    choices: [
+        {
+            text: "진열대로 간다.",
+            next: "sales"
+        }
+    ]
+},
+
+salesPassword: {
+screen: 
+`
+구매 메뉴얼
+
+1. 진열대에서 물품을 가져옵니다.
+2. 가져온 물품이 해당하는 제품번호를 입력합니다.
+3. 자동 결제가 진행됩니다.
+
+---------------------------------------------
+
+제품 번호 안내
+
+1. 위생용품 : 1257
+2. 식료품 : 0457
+3. 사무용품 : 0439
+4. 취미용품 : 1457
+
+---------------------------------------------
+
+용품 구별법:
+
+1. 먹을 수 있는가? (예: 0 / 아니오: 1)
+2. 위생과 관련된 것인가? (예: 2 / 아니오: 4)
+3. 생명과 직결된 것인가? (예: 3 / 아니오: 5)
+4. 지금 당장 필요한 것인가? (예: 9 / 아니오: 7)
+`,
+
+dialog: "",
+
+ keypad: true,
+
+            answer: "0439",
+
+            success: "storeOut",
+
+              inputType: "password",
+
+              maxLength: 4,
+
+              placeholder: "숫자 4자리 입력",
+
+              fail: "storepasswordFail",
+
+            choices: [
+           {
+            text: "취소",
+            next: "counter"
+             }
+            ]
+        },
+
+storepasswordFail: {
+    screen: `
+    소지하고 계신 제품과 제품번호가 맞지 않습니다.
+    
+    `,
+
+    dialog: "젠장! 정신 좀 차리라고.",
+
+    choices: [
+        {
+            text: "다시 입력한다.",
+            next: "salesPassword"            
+        }
+    ]
+},
+
+storeOut: {
+    screen: "손목시계를 보는 장면 - 9:45",
+
+    dialog: `
+    결제까지 마쳤다.
+    휴... 다행히 시간은 맞출 수 있겠어. 마지막까지 정신만 차린다면...
+    `,
+
+    choices: [
+        {
+            text: "미팅 장소로 이동한다.",
+            next: "office"
+        }
+    ]
+    },
+
+// 회사 도착 ---------------------------------------------------------
+
+    office: {
+        screen: "회사 내부 풍경, 지나다니는 사람이 있고, 그 앞에 보안 게이트가 보임",
+
+        dialog: "겨우 도착했다. 어디... 아, 저기 보안 게이트로 들어가면 되는 건가.",
+
+        choices: [
+            {
+                text: "보안 게이트로 다가간다.",
+                next: "gate"
+            }
+        ]
+    },
+
+    gate:{
+        screen: "가까워진 보안 게이트, 1인칭 시점",
+
+        dialog: "닫혀 있는 보안 게이트. 사원증 태그용 단말기가 보인다.",
+        
+        choices: [
+            {
+                text: "가져온 사원증을 태그한다.",
+                next: "gateCheck"
+            }
+        ]
+
+
+    },
+
+    gateCheck: {
+
+        special: "gateCheck",
+        choices: []
+    },
+
+    jackGate: {
+        screen: "열리는 보안 게이트",
+
+        dialog: `
+        [환영합니다. Jack 님.]
+        [저는 신공지능 비서, Mini입니다. 당신의 배정 장소는 5912호입니다.]
+        [우측 엘레베이터를 이용하십시오.]`,
+
+        choices: [
+            {
+                text: "엘레베이터로 향한다.",
+                next: "jackElevator"
+            }
+        ]
+    },
+
+     jungwonGate: {
+     screen: "열리는 보안 게이트",
+
+        dialog: `
+        [환영합니다. 김정원 님.]
+        [저는 신공지능 비서, Mini입니다. 당신의 배정 장소는 4811호입니다.]
+        [우측 엘레베이터를 이용하십시오.]`,
+
+        choices: [
+            {
+                text: "엘레베이터로 향한다.",
+                next: "jungwonElevator"
+            }
+        ]
+    },
+
+
+    // 엘레베이터 탑승 ------------------------------------------------------------------------------------------------
+
+    jackElevator: {
+        screen: "엘레베이터 안 층 버튼",
+
+        dialog: "[몇 층으로 가십니까?]",
+
+        choices: [
+            {
+            text: " [ ▶ 48층 ] ",
+            next: "H_no"
+            },
+            {
+                text: " [ ▶ 59층 ] ",
+                next: "elevatorOpen1"
+            }
+        ]
+
+    },
+
+    H_no: {
+        screen: "엘레베이터 안 층 버튼",
+
+        dialog: `[ 귀하께서는 갈 필요 없는 곳입니다. ]
+         
+        [몇 층으로 가십니까? ]`,
+
+        choices: [
+            {
+               text: " [ ▶ 59층 ] ",
+                next: "elevatorOpen1"
+            }
+        ]
+    },
+
+   
+
+    jungwonElevator: {
+       screen: "엘레베이터 안 층 버튼",
+
+        dialog: "[몇 층으로 가십니까?]",
+
+        choices: [
+            {
+            text: " [ ▶ 48층 ] ",
+            next: "elevatorOpen1"
+            },
+            {
+                text: " [ ▶ 59층 ] ",
+                next: "B_no"
+            }
+        ]
+    },
+
+    B_no: {
+        screen: "엘레베이터 안 층 버튼",
+
+        dialog: `[ 당신은 그곳에 갈 자격을 부여받지 못했습니다. ]
+         
+        [몇 층으로 가십니까? ]`,
+
+        choices: [
+            {
+               text: " [ ▶ 48층 ] ",
+                next: "elevatorOpen1"
+            }
+        ]
+    },
+
+// 엘레베이터 열리는 애니메이션 ------------------------------------
+
+elevatorOpen1: {
+    screen: `
+    [엘리베이터 문이 살짝 열린다.]
+    `,
+
+    dialog: "",
+
+    autoNext: "elevatorOpen2",
+    delay: 700,
+
+    choices: []
+},
+
+elevatorOpen2: {
+    screen: `
+    [엘리베이터 문이 절반 정도 열린다.]
+    `,
+
+    dialog: "",
+
+    autoNext: "elevatorOpen3",
+    delay: 700,
+
+    choices: []
+},
+
+elevatorOpen3: {
+    screen: `
+    [엘리베이터 문이 완전히 열린다.]
+    `,
+
+    dialog: "",
+
+    autoNext: "happyEnding",   // 일단 임시
+    delay: 700,
+
+    choices: []
+},
+
+// Ending ----------------------------------------------------
+
+ happyEnding: {
+        screen: ` 천천히 열리는 엘레베이터 문 (2~3초),
+        두꺼운 철창, 그 밖으로 보이는 거대한 형체`,
+
+        dialog: `
+        [ 실험체 닉네임 JACK. 
+         Minimal 자격 검증 테스트에 최종 통과했습니다.]
+        [ 신체 능력: 통과 ]
+        [ 순종성: 통과 ]
+        [ 기억 변환: 성공 ]
+        [ Minimal로서 상품 가치를 부여합니다. ]
+        [ 경매일은 사흘 뒤, ■■■■ 여러분의 많은 관심과 참여 부탁드립니다.
+         감사합니다. ]
+        `,
+        // 이후에 happy Ending 씬으로 자동 넘어가는 코드 추가
+
+    },
+
+    badEnding:{
+        screen: `
+        천천히 열리는 엘레베이터 문 (2~3초, 아스키 아트 변환)
+        두꺼운 철창, 그밖으로 보이는 거대한 형체`,
+
+        dialog: `[ 실험체 닉네임 JACK. 
+        Minimal 자격 검증 최종 테스트에 통과하지 못했습니다.]
+        [ 신체 능력: 통과 ]
+        [ 순종성: 통과 ]
+        [ 기억 변환: 실패 ] 
+        [ 폐기 처분 진행합니다.  ■■■■ 여러분께서는 뒤로 한 발짝 물러나 프로세스를 지켜보십시오. ]
+        [ 프로세스 도중 체액이 튈 가능성이 있으나, 접촉 시에도 신체 손실이 되지 않습니다. ]`
+
+    },
+
+
+
+// 인벤토리 아이템 -----------------------------------------------
+
+inventory:{
+    screen: "현재 갖고 있는 소지품의 이미지 (삽입 가능?)",
+    dialog: "현재 갖고 있는 물품들이다.",
+    inventory: true, 
+
+    choices: [
+        {
+            text: "[뒤로]",
+            next: "back"
+        }
+    ]
+},
+
+contractItem: {
+     inventoryItem:true,
+    screen: `
+    
+        ────────────────────────────────────────────
+              독점 공급 계약 미팅 안내
+    ─────────────────────────────────────────────
+
+    문서번호 : ND-SC-2411-017
+    작성일 : ■■■년 11월 18일
+
+    ■ 거래처
+    (주) 나다움
+
+    ■ 미팅 대상
+    (주) 뉴라이프
+
+    ■ 안건
+    독점 공급 계약 체결 및 세부 조건 협의
+
+    ■ 회의 일시
+    ■■■년 11월 27일(수) 10:00
+
+    ■ 회의 장소
+    세움시 천문동 신생로 888-7
+    2층 회의실
+
+    ■ 주요 내용
+    - 독점 공급 계약서 최종 검토
+    - 공급 단가 및 계약 기간 협의
+    - 납품 일정 확정
+    - 계약서 서명
+
+    ※ 참석자는 회의 시작 10분 전까지 도착하여
+    계약 관련 자료를 사전 확인해 주시기 바랍니다.
+
+    ────────────────────────────────────────────
+
+    `,
+
+    dialog: "계약 미팅 내용이 적힌 서류다.",
+
+    choices: [
+        { 
+            text: "[뒤로]",
+            next: "back"
+        }
+    ]
+
+
+},
+
+JackidItem: {
+     inventoryItem:true,
+
+    screen: ` Jack 사원증 그림`,
+
+    dialog: "나의 사원증이다. 거래처 보안 게이트를 통과할 때 필요하다.",
+    
+    choices: [
+        {
+            text: "[뒤로]",
+            next: "back"
+
+        }
+    ]
+
+},
+
+KimidItem: {
+     inventoryItem:true,
+
+    screen: "김정원 사원증 그림",
+    dialog: "나의 사원증이다. 거래처 보안 게이트를 통과할 때 필요하다.",
+    
+    choices: [
+        {
+            text: "[뒤로]",
+            next: "back"
+
+        }
+    ]
+
+},
+
+mapMemory: {
+    inventoryItem: true,
+
+    screen: "최적 경로 - 세 가지 경로 중 동그라미쳐짐, 나머지 경로는 흐릿하게",
+    dialog: "이게 가장 빨리 도착할 수 있는 경로야.",
+
+    choices: [
+        {
+            text: "[뒤로]",
+            next: "back"
+        }
+    ]
+}
+}
+</script>
+
+<script>
+(function(){
+'use strict';
+
+/* ============================================================
+   2) 도트 그래픽 엔진  (96 x 72 저해상도 캔버스를 확대해서 표시)
+   ============================================================ */
+const W=96,H=72;
+const S=2;                                             // 아트 해상도 배율 (96x72 좌표계를 2배로 렌더)
+const cv=document.getElementById('art');
+const out=cv.getContext('2d',{willReadFrequently:true});
+const sc=document.createElement('canvas');sc.width=W*S;sc.height=H*S;cv.width=sc.width;cv.height=sc.height;
+const g=sc.getContext('2d',{willReadFrequently:true});
+const C={ink:'#0a0a10',wall:'#2b2b3d',wall2:'#232333',floor:'#171722',floor2:'#1e1e2c',
+ red:'#c8392b',red2:'#8f2a24',red3:'#e8643a',wood:'#6e4b2e',wood2:'#4d331f',woodL:'#8b6240',
+ white:'#ececf0',grey:'#8b8b9c',grey2:'#55556a',grey3:'#34344a',skin:'#f0bf98',hair:'#2a1a14',
+ blue:'#4a6fa5',blue2:'#33507a',screen:'#3b82d6',screenD:'#1d3b66',yellow:'#f1c84b',green:'#4fb57f',
+ pink:'#e58aa0',black:'#000',paper:'#e8e2cc',dim:'#15151f'};
+const q2=v=>Math.round(v*2)/2;
+const r=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(q2(x),q2(y),q2(w),q2(h))};
+const px=(x,y,c)=>r(x,y,1,1,c);
+function ring(cx,cy,rad,c,th=1){for(let y=-rad;y<=rad;y++)for(let x=-rad;x<=rad;x++){const d=Math.sqrt(x*x+y*y);if(d<=rad+.3&&d>=rad-th+.3)px(cx+x,cy+y,c)}}
+function disc(cx,cy,rad,c){for(let y=-rad;y<=rad;y++)for(let x=-rad;x<=rad;x++)if(x*x+y*y<=rad*rad+rad*.4)px(cx+x,cy+y,c)}
+function rect(x,y,w,h,c){r(x,y,w,1,c);r(x,y+h-1,w,1,c);r(x,y,1,h,c);r(x+w-1,y,1,h,c)}
+function hashE(i){const s=Math.sin(i*12.9898+4.1414)*43758.5453;return s-Math.floor(s)}
+function pupilOffset(t){
+  const period=6,mx=9,my=3;
+  const idx=Math.floor(t/period),frac=(t%period)/period;
+  const rx0=(hashE(idx*17+3)*2-1)*mx,ry0=(hashE(idx*19+7)*2-1)*my;
+  const rx1=(hashE((idx+1)*17+3)*2-1)*mx,ry1=(hashE((idx+1)*19+7)*2-1)*my;
+  const e=frac<0.3?(frac/0.3):1;
+  return [rx0+(rx1-rx0)*e, ry0+(ry1-ry0)*e];
+}
+
+// 3x5 도트 폰트 (숫자/일부 영문)
+const FONT={'0':'111101101101111','1':'010110010010111','2':'111001111100111','3':'111001111001111','4':'101101111001001',
+'5':'111100111001111','6':'111100111101111','7':'111001001001001','8':'111101111101111','9':'111101111001111',
+':':'000010000010000','-':'000000111000000','A':'010101111101101','B':'110101110101110','C':'011100100100011',
+'D':'110101101101110','E':'111100110100111','I':'111010010010111','J':'001001001101010','K':'101101110101101',
+'M':'101111111101101','N':'110101101101101','L':'100100100100111','S':'011100110001110'};
+let crisp=[];
+function txt(s,x,y,c,sc=1){crisp.push({s:String(s),x,y,c,sc})}      // 디더링을 거치지 않고 마지막에 선명하게 그린다
+const txtW=(s,sc=1)=>String(s).length*4*sc-sc;
+
+function person(x,y,back){
+  r(x+1,y,4,4,C.skin);r(x,y-1,6,2,C.hair);
+  if(back)r(x,y,6,3,C.hair);else{px(x+1,y+2,C.ink);px(x+4,y+2,C.ink)}
+  r(x,y+4,6,6,C.blue);r(x-1,y+5,1,4,C.blue2);r(x+6,y+5,1,4,C.blue2);
+  r(x+1,y+10,2,4,C.ink);r(x+3,y+10,2,4,C.ink);
+}
+function wallFloor(wallH=46,wc=C.wall,fc=C.floor){r(0,0,W,wallH,wc);r(0,wallH,W,H-wallH,fc);r(0,wallH-2,W,2,C.wall2)}
+function monitor(sx,sy,sw,sh,bezel=C.grey2){r(sx-3,sy-3,sw+6,sh+6,bezel);r(sx,sy,sw,sh,C.ink);r(sx+sw/2-4,sy+sh+3,8,5,bezel);r(sx+sw/2-12,sy+sh+8,24,3,bezel)}
+function clock(x,y,c=C.white,s=CLOCK){txt(s,x,y,c)}
+let CLOCK='08:50';
+
+// ---- 지도 / 경로 퍼즐용 데이터 (정답: ↑ → → ↓ ← ↑ ↑ 가 '최적 경로' A) ----
+const ROUTES={
+  A:{c:'#5aa0ff',min:'0:50',pts:[[20,62],[20,52],[30,52],[40,52],[40,62],[30,62],[30,52],[30,42]]},
+  B:{c:'#ff9a4a',min:'1:10',pts:[[20,62],[40,62],[40,42],[30,42]]},
+  C:{c:'#7be08a',min:'1:30',pts:[[20,62],[10,62],[10,42],[30,42]]}
+};
+function drawPath(pts,c,th=2){for(let i=0;i<pts.length-1;i++){const[a,b]=[pts[i],pts[i+1]];
+  r(Math.min(a[0],b[0])-1,Math.min(a[1],b[1])-1,Math.abs(a[0]-b[0])+th,Math.abs(a[1]-b[1])+th,c)}}
+function mapBG(){
+  r(0,0,W,58,'#243a30');
+  for(let x=0;x<W;x+=10)r(x,0,1,58,'#2f4a3d');
+  for(let y=0;y<58;y+=10)r(0,y,W,1,'#2f4a3d');
+  [[0,22,96,3],[0,42,96,2],[10,0,2,58],[30,0,2,58],[60,0,3,58]].forEach(a=>r(a[0],a[1],a[2],a[3],'#3d5c4c'));
+  r(70,28,16,12,'#1c2c25');r(72,8,12,10,'#1c2c25');r(40,8,14,10,'#1c2c25');
+}
+function pin(x,y,c){r(x-2,y-6,5,5,c);r(x-1,y-1,3,2,c);px(x,y+1,c);px(x,y-4,C.white)}
+
+/* ---------- 장면별 그래픽 ---------- */
+const ART={};
+ART.black=()=>r(0,0,W,H,'#000');
+ART.eyes=(t)=>{
+  ART.bed(t);const o=Math.min(t,5);
+  g.fillStyle='rgba(15,8,12,'+[1,.85,.65,.5,.35,.25][o]+')';g.fillRect(0,0,W,H);
+  const lid=Math.max(0,4-o)*9;r(0,0,W,lid,'#000');r(0,H-lid,W,lid,'#000');
+};
+
+ART.room=(t)=>{
+  wallFloor();
+  for(let x=0;x<W;x+=12)r(x,50,1,22,C.floor2);
+  // 창문
+  r(52,8,20,16,C.wood2);r(54,10,16,12,C.red);r(54,10,16,5,C.red3);r(61,10,2,12,C.wood2);r(54,15,16,1,C.wood2);
+  // 문
+  r(34,18,16,28,C.wood2);r(36,20,12,24,C.wood);px(46,33,C.yellow);
+  // 침대
+  r(3,28,3,20,C.wood2);r(5,36,26,10,C.blue);r(6,32,8,5,C.white);r(14,36,17,10,C.blue2);r(4,46,2,3,C.wood2);r(29,46,2,3,C.wood2);
+  // 달력
+  r(78,8,13,15,C.white);r(78,8,13,3,C.red);for(let i=0;i<3;i++)r(80,13+i*3,9,1,C.grey);rect(85,17,4,4,C.red);
+  // 책상
+  r(66,38,28,3,C.woodL);r(68,41,2,12,C.wood2);r(90,41,2,12,C.wood2);
+  r(72,31,12,7,C.grey2);r(73,32,10,5,C.screen);r(87,36,4,2,C.white);
+  person(45,53,true);
+};
+ART.bed=()=>{
+  wallFloor(50);
+  r(8,30,80,6,C.wood2);r(8,36,80,18,C.blue);r(8,26,6,28,C.wood2);r(16,30,18,8,C.white);
+  r(40,36,48,18,C.blue2);r(46,40,30,2,C.blue);r(8,54,6,6,C.wood2);r(82,54,6,6,C.wood2);
+  r(0,16,W,2,C.wall2);
+};
+ART.desk=(t)=>{
+  r(0,0,W,72,C.wall);r(0,44,W,28,C.wood);r(0,44,W,2,C.woodL);
+  r(20,8,48,28,C.grey2);r(23,11,42,22,C.ink);r(25,13,38,18,C.screenD);
+  for(let i=0;i<4;i++)r(28,16+i*4,12+(i*7)%18,2,C.screen);
+  r(14,36,60,5,C.grey);r(16,41,56,1,C.grey2);
+  r(76,48,12,20,C.ink);rect(76,48,12,20,C.grey);r(78,51,8,14,C.screenD);
+  r(10,58,44,12,C.wood2);rect(10,58,44,12,C.ink);r(28,63,8,2,C.yellow);
+};
+function phoneBody(){r(0,0,W,72,C.floor);r(28,2,40,68,C.ink);rect(28,2,40,68,C.grey);r(31,7,34,58,'#13213a');r(44,4,8,1,C.grey2)}
+ART.phoneLock=(t)=>{
+  phoneBody();txt('08:30',48-txtW('08:30',1.5)/2,14,C.white,1.5);
+  r(44,32,8,7,C.white);rect(45,28,6,5,C.white);px(47,35,C.ink);px(48,35,C.ink);
+  for(let i=0;i<4;i++)r(37+i*6,48,4,4,(t+i)%4===0?C.yellow:C.grey2);
+};
+ART.phoneHome=(t)=>{
+  phoneBody();r(31,7,34,58,'#1b3358');
+  for(let i=0;i<6;i++){const x=34+(i%3)*10,y=14+((i/3)|0)*11;r(x,y,8,8,[C.green,C.blue,C.yellow,C.pink,C.screen,C.grey][i])}
+  // 메시지(편지) 아이콘 + 알림점
+  r(36,44,14,10,C.white);for(let i=0;i<6;i++){px(36+i,44+i,C.grey);px(49-i,44+i,C.grey)}
+  if((game.flags.phoneState||0)<2&&t%2===0)disc(50,44,2,C.red);
+  r(40,59,16,2,C.grey);
+};
+ART.monitorLogin=(t)=>{
+  r(0,0,W,72,C.floor);monitor(14,6,68,42);r(17,9,62,38,'#12233f');
+  r(40,16,16,12,C.grey);rect(42,12,12,8,C.grey);
+  r(30,34,36,6,C.white);for(let i=0;i<7;i++)if(i<3||t%2)r(33+i*4,36,2,2,C.ink);
+  r(20,62,56,3,C.wood);
+};
+ART.monitorDesk=(t)=>{
+  r(0,0,W,72,C.floor);monitor(14,6,68,42);r(17,9,62,38,'#2c5aa0');r(17,40,62,7,'#0c1624');clock(58,41,C.white,'08:30');
+  r(22,14,10,8,C.white);for(let i=0;i<5;i++){px(22+i,14+i,C.grey);px(31-i,14+i,C.grey)}
+  pin(46,24,C.red);r(60,15,10,9,C.grey2);r(62,13,6,2,C.grey2);
+};
+ART.monitorGlitch=(t)=>{
+  ART.monitorDesk(t);
+  for(let i=0;i<9;i++){const y=9+((i*13+t*17)%36),o=((i*7+t*5)%11)-5;r(17+(o>0?o:0),y,62,2+(i%2),i%3?C.white:C.red)}
+  r(17,9,62,38,'rgba(0,0,0,0.25)');
+};
+ART.map=(t)=>{
+  r(0,0,W,72,C.floor);monitor(6,4,84,52);r(8,6,80,48,'#12233f');
+  g.save();g.beginPath();g.rect(8,6,80,48);g.clip();g.translate(0,-2);mapBG();g.restore();
+  r(10,8,76,7,C.white);r(12,10,40,3,C.grey);if(t%2)r(54,10,1,3,C.ink);
+  pin(30,38,C.red);r(8,47,80,6,C.ink);clock(66,48,C.white);
+};
+ART.mapLoading=(t)=>{
+  ART.map(0);r(30,30,36,10,C.ink);rect(30,30,36,10,C.white);
+  for(let i=0;i<3;i++)if(i<=t%4)r(40+i*6,34,3,3,C.yellow);
+};
+function routeScreen(highlight){
+  r(0,0,W,72,'#08080c');rect(0,0,W,72,C.grey2);rect(1,1,W-2,70,C.grey3);
+  const cs=10;
+  [['A',3],['B',34],['C',65]].forEach(([k,x])=>{
+    const rt=ROUTES[k],dim=highlight&&k!=='A',lab=dim?C.grey3:C.white;
+    const cells=rt.pts.map(p=>[(p[0]-20)/10,(p[1]-42)/10]);
+    const xs=cells.map(c=>c[0]),ys=cells.map(c=>c[1]);
+    const minx=Math.min(...xs),maxx=Math.max(...xs),miny=Math.min(...ys),maxy=Math.max(...ys);
+    const pw=28,ph=38,px0=x,py0=23;
+    r(px0,12,pw,9,'#000');rect(px0,12,pw,9,lab);txt(k,px0+3,14,lab);txt(rt.min,px0+10,14,lab);          // 라벨 + 소요 시간
+    r(px0,py0,pw,ph,'#101016');rect(px0,py0,pw,ph,dim?'#242430':C.grey2);
+    const ox=px0+Math.round((pw-(maxx-minx)*cs)/2)-minx*cs,oy=py0+Math.round((ph-(maxy-miny)*cs)/2)-miny*cs;
+    for(let gx=minx-1;gx<=maxx+1;gx++)for(let gy=miny-1;gy<=maxy+1;gy++){                          // 격자(한 칸 = 한 스텝)
+      const X=ox+gx*cs,Y=oy+gy*cs;if(X>px0+1&&X<px0+pw-2&&Y>py0+1&&Y<py0+ph-2)px(X,Y,dim?'#2a2a34':'#5a5a68')}
+    const col=dim?'#454545':'#fff';
+    for(let i=0;i<cells.length-1;i++){
+      const a=cells[i],b=cells[i+1];
+      if(a[1]===b[1])r(ox+Math.min(a[0],b[0])*cs,oy+a[1]*cs,Math.abs(a[0]-b[0])*cs+1,2,col);
+      else r(ox+a[0]*cs,oy+Math.min(a[1],b[1])*cs,2,Math.abs(a[1]-b[1])*cs+1,col);
+      const n=Math.max(Math.abs(a[0]-b[0]),Math.abs(a[1]-b[1]));
+      for(let s=0;s<=n;s++){const nx=a[0]+Math.sign(b[0]-a[0])*s,ny=a[1]+Math.sign(b[1]-a[1])*s;r(ox+nx*cs-1,oy+ny*cs-1,4,4,col)}   // 스텝마다 점
+    }
+    const S0=cells[0],D0=cells[cells.length-1];
+    rect(ox+S0[0]*cs-4,oy+S0[1]*cs-4,10,10,dim?'#555':C.white);                                     // 출발: 네모
+    ring(ox+D0[0]*cs+1,oy+D0[1]*cs+1,5,dim?'#454545':C.white,2);                                    // 도착: 원
+  });
+  clock(66,63,C.white);
+}
+ART.routes=()=>routeScreen(false);
+ART.routesMemory=(t)=>{routeScreen(true);rect(2,11,30,51,C.white);if(t%2===0)rect(1,10,32,53,C.white)};
+ART.drawer=()=>{
+  r(0,0,W,72,C.wall);r(0,40,W,32,C.wood);r(10,44,76,24,C.wood2);rect(10,44,76,24,C.ink);
+  r(14,48,68,16,'#251a10');r(24,50,48,12,C.wood);r(44,40,8,3,C.yellow);
+};
+ART.bag=(t)=>{
+  r(0,0,W,72,C.floor);r(0,56,W,16,C.wood);
+  r(36,14,24,10,C.wood2);r(40,18,16,6,C.floor);r(18,24,60,32,C.wood);rect(18,24,60,32,C.wood2);r(18,38,60,2,C.wood2);
+  r(44,36,8,6,C.yellow);for(let i=0;i<5;i++)r(26+i*9,46,6,6,i===t%5?C.yellow:C.ink),txt('0',27+i*9,47,C.white);
+};
+ART.bagOpen=()=>{
+  r(0,0,W,72,C.floor);r(0,60,W,12,C.wood);
+  r(18,6,60,18,C.wood2);rect(18,6,60,18,C.wood);r(22,10,52,10,'#6a4a2c');
+  r(18,26,60,32,C.wood);r(22,30,52,24,'#caa86a');
+  r(26,32,22,20,C.white);for(let i=0;i<5;i++)r(29,35+i*3,16,1,C.grey);
+  r(54,34,14,16,C.blue);r(56,36,10,6,C.white);r(56,44,10,2,C.white);
+};
+ART.papers=()=>{
+  r(0,0,W,72,C.floor);r(0,0,W,72,C.wood);
+  r(18,6,44,60,C.paper);for(let i=0;i<8;i++)r(24,14+i*6,32,1,C.grey);r(24,10,24,2,C.ink);
+  r(56,34,28,26,C.yellow);r(60,40,20,1,C.wood2);r(60,46,16,1,C.wood2);r(60,52,18,1,C.wood2);
+};
+function idCard(x,y,c,name,face){
+  r(x,y,32,44,C.white);r(x,y,32,10,c);txt(name,x+3,y+3,C.white);
+  r(x+8,y+14,16,16,C.grey);r(x+11,y+17,10,10,face);r(x+10,y+16,12,3,C.hair);
+  r(x+4,y+34,24,2,C.grey2);r(x+4,y+38,16,2,C.grey2);
+}
+ART.idcards=(t)=>{r(0,0,W,72,C.wall);r(0,0,W,72,C.wood2);idCard(10,14,C.blue,'KIM',C.skin);idCard(54,14,C.red,'JACK',C.skin);
+  if(t%2){rect(8,12,36,48,C.yellow)}else{rect(52,12,36,48,C.yellow)}};
+ART.cardJack=()=>{r(0,0,W,72,C.floor);g.save();g.translate(0,0);idCard(32,10,C.red,'JACK',C.skin);g.restore()};
+ART.cardKim=()=>{r(0,0,W,72,C.floor);idCard(32,10,C.blue,'KIM',C.skin)};
+ART.door=(t)=>{
+  r(0,0,W,72,C.wall);r(0,60,W,12,C.floor);
+  r(26,6,44,56,C.wood2);r(30,10,36,48,C.wood);r(34,14,28,16,C.wood2);r(34,34,28,20,C.wood2);
+  r(58,36,4,4,C.yellow);r(44,18,6,6,C.ink);ring(47,21,2,C.grey,1);
+  r(30,62,36,4,C.grey3);
+};
+ART.doorAnim=(t,ex)=>{
+  const f=ex.frame||0;
+  if(f===0){ART.door(0);return}
+  if(f>=4){r(0,0,W,72,'#000');return}
+  if(f===1||f===2){                                    // 문이 열리며 바깥 빛이 새어 들어온다 (붉은 잉크로 렌더링)
+    r(0,0,W,72,'#0c0c0c');
+    const x0=f===1?26:0,y0=f===1?6:0,w0=f===1?44:W,h0=f===1?56:72;
+    const gr=g.createRadialGradient(48,34,2,48,34,60);gr.addColorStop(0,'#fff');gr.addColorStop(.55,'#9a9a9a');gr.addColorStop(1,'#303030');
+    g.fillStyle=gr;g.fillRect(x0,y0,w0,h0);
+    r(x0,y0,f===1?14:8,h0,'#222');
+    if(f===1)rect(26,6,44,56,'#444');
+    return;
+  }
+  const sky=g.createLinearGradient(0,0,0,46);sky.addColorStop(0,'#262626');sky.addColorStop(1,'#e6e6e6');   // f===3: 문밖 풍경
+  g.fillStyle=sky;g.fillRect(0,0,W,46);
+  const sun=g.createRadialGradient(62,34,1,62,34,28);sun.addColorStop(0,'#fff');sun.addColorStop(.3,'#fff');sun.addColorStop(1,'rgba(255,255,255,0)');
+  g.fillStyle=sun;g.fillRect(0,0,W,72);disc(62,34,8,'#fff');
+  r(0,46,W,26,'#000');
+  [[0,36,7],[8,30,6],[15,40,8],[24,26,6],[31,38,9],[41,32,6],[48,42,7],[74,34,8],[83,28,7],[90,38,6]].forEach(([x,y,w])=>r(x,y,w,72-y,'#000'));
+};
+ART.window=(t)=>{
+  r(0,0,W,72,C.wall);r(14,6,68,58,C.wood2);r(18,10,60,50,C.red);r(18,10,60,18,C.red3);r(18,28,60,12,'#b0322a');
+  // 도시 실루엣
+  [[20,44,6,16],[28,40,8,20],[38,46,5,14],[45,36,9,24],[56,42,6,18],[64,38,8,22],[72,46,5,14]].forEach(a=>r(a[0],a[1],a[2],a[3],'#2a1216'));
+  [[31,44],[48,40],[50,48],[67,42]].forEach(a=>px(a[0],a[1],C.yellow));
+  r(46,10,4,50,C.wood2);r(18,32,60,3,C.wood2);
+  disc(30,19,4,'#ffb090');
+};
+ART.calendar=()=>{
+  r(0,0,W,72,C.wall);r(22,6,52,60,C.white);r(22,6,52,12,C.red);txt('3',44,9,C.white,1);
+  for(let y=0;y<5;y++)for(let x=0;x<7;x++)r(26+x*6.5,22+y*8,4,5,C.grey);
+};
+ART.calendarCircle=(t)=>{
+  ART.calendar();ring(26+3*6.5+2,22+2*8+2,5+(t%2),C.red,2);
+};
+ART.taxi=(t,ex)=>{
+  const st=ex.stage||0,jolt=(t%2)?1:0;
+  g.save();g.translate(0,jolt);
+  r(0,-2,W,76,'#0d0d14');
+  // 앞유리 + 흘러가는 가로등
+  r(6,8,84,34,'#1a1f33');
+  for(let i=0;i<5;i++){const x=((i*22-t*9)%110+110)%110-8;r(x,12,2,22,'#3a3a55');r(x-2,10,6,3,C.yellow)}
+  r(6,34,84,8,'#15151f');
+  // 백미러 + 기사
+  r(44,3,12,6,C.grey3);
+  if(st===2){px(47,6,C.white);px(52,6,C.white)}
+  r(14,24,18,26,'#07070c');r(18,16,12,12,'#07070c');
+  if(st===2)r(22,18,3,2,'#2a1a14');
+  // 대시보드 + 핸들
+  r(0,46,W,26,'#101018');r(0,46,W,2,C.grey3);r(10,48,28,3,C.grey3);ring(24,58,9,C.grey2,3);
+  r(60,52,26,8,C.grey3);px(64,55,C.red);px(70,55,C.green);
+  // 승객(뒷모습 일부)
+  r(68,56,22,16,C.blue2);r(72,50,12,10,C.hair);
+  g.restore();
+  if(st===4){g.fillStyle='rgba(0,0,0,'+Math.min(.85,t*.25)+')';g.fillRect(0,0,W,H)}
+};
+ART.store=(t)=>{
+  r(0,0,W,72,'#1d2430');r(0,50,W,22,'#2c2c3a');
+  for(let x=0;x<W;x+=8)r(x,50,1,22,'#232330');
+  r(4,12,28,36,C.grey2);for(let i=0;i<4;i++){r(6,14+i*9,24,7,'#20203a');for(let j=0;j<5;j++)r(7+j*5,15+i*9,3,5,[C.red,C.yellow,C.green,C.blue][(i+j)%4])}
+  r(62,10,30,40,'#2a4a5a');r(64,12,26,36,'#3f7a8a');r(76,12,2,36,'#2a4a5a');
+  r(36,38,24,12,C.wood);r(38,34,12,4,C.grey);
+  r(36,4,24,6,t%2?C.yellow:'#a58a2a');txt('24',42,5,C.ink);
+};
+ART.counter=(t)=>{
+  r(0,0,W,72,'#1d2430');r(0,48,W,24,C.wood);r(0,48,W,2,C.woodL);
+  r(50,12,28,30,C.grey2);r(52,14,24,14,'#12233f');for(let i=0;i<4;i++)r(55+i*5,19,3,4,t%4===i?C.yellow:C.white);
+  for(let i=0;i<9;i++)r(54+(i%3)*7,31+((i/3)|0)*3,5,2,C.grey);
+  r(10,40,24,16,C.paper);for(let i=0;i<4;i++)r(13,43+i*3,18,1,C.grey);
+  r(36,44,10,4,C.white);
+};
+ART.shelf=(t)=>{
+  r(0,0,W,72,'#1d2430');
+  for(let i=0;i<3;i++){r(4,12+i*20,88,3,C.grey2);r(4,15+i*20,88,14,'#262638')}
+  const cols=[C.red,C.blue,C.green,C.yellow,C.pink,C.white];
+  for(let i=0;i<3;i++)for(let j=0;j<14;j++)r(8+j*6,17+i*20,2,11,cols[(i*3+j)%6]);
+  // 볼펜 하이라이트
+  r(80,57,10,3,t%2?C.yellow:C.blue);r(88,57,2,3,C.white);
+};
+ART.watch=(t)=>{
+  r(0,0,W,72,C.floor);r(30,0,36,72,C.skin);r(30,0,36,6,'#4a6fa5');
+  r(26,24,44,26,C.grey2);r(28,26,40,22,C.ink);txt('9:45',48-txtW('9:45',2.5)/2,30.5,t%2?C.white:C.yellow,2.5);
+};
+ART.office=(t)=>{
+  r(0,0,W,72,'#262a3a');r(0,48,W,24,'#32364a');
+  for(let x=0;x<W;x+=16)r(x,0,2,48,'#3a3f56');
+  [0,1,2].forEach(i=>{const x=((i*34+t*4)%110)-8;r(x,34,5,14,['#4a4a60','#5a3a3a','#3a5a4a'][i]);r(x,28,5,6,C.skin)});
+  r(62,26,30,22,C.grey3);r(66,28,22,18,C.grey2);r(76,24,2,4,t%2?C.red:'#601c18');
+  r(0,50,W,2,C.grey3);
+};
+ART.gate=(t)=>{
+  r(0,0,W,72,'#262a3a');r(0,56,W,16,'#32364a');
+  r(20,20,24,36,C.grey2);r(52,20,24,36,C.grey2);r(44,20,8,36,C.ink);
+  r(78,28,12,20,C.grey);r(80,30,8,6,C.ink);px(84,40,t%2?C.red:'#601c18');r(80,44,8,2,C.white);
+};
+ART.gateOpen=(t)=>{
+  r(0,0,W,72,'#262a3a');r(0,56,W,16,'#32364a');
+  r(6,20,10,36,C.grey2);r(80,20,10,36,C.grey2);r(16,20,64,36,'#0f1a14');
+  r(78,28,12,20,C.grey);r(80,30,8,6,C.ink);px(84,40,t%2?C.green:'#25563a');r(80,44,8,2,C.white);
+  r(20,52,56,3,'#1d4a35');
+};
+ART.elevatorIn=(t)=>{
+  r(0,0,W,72,'#22222c');r(30,6,36,60,C.grey3);rect(30,6,36,60,C.grey);
+  r(36,14,24,10,C.ink);txt(game.flags.floor||'1',46.5,16,C.white,1);
+  [['59',31],['48',43],['01',55]].forEach(([n,y])=>{ring(48,y,5,C.grey,1);txt(n,44,y-2,C.white,1)});
+  px(43,22,t%2?C.yellow:C.grey);
+};
+ART.elevatorOpen=(t,ex)=>{
+  const lv=ex.level||0;r(0,0,W,72,'#22222c');r(16,6,64,60,'#05050a');
+  if(lv>=3){for(let x=22;x<76;x+=6)r(x,6,2,60,C.grey3);r(30,18,36,48,'#0b0b12');px(40,34,C.red);px(52,34,C.red)}
+  const open=[0,6,16,26][lv];
+  r(16,6,32-open,60,C.grey);r(48+open,6,32-open,60,C.grey);r(47,6,2,60,C.ink);
+};
+ART.cage=(t,ex)=>{
+  const bad=ex.bad;
+  r(0,0,W,H,bad?'#1a0808':'#05050a');
+  // 거대한 형체
+  const body=bad?'#8a7c82':'#7c7c88';
+  r(22,10,52,60,body);r(28,2,40,24,body);r(16,30,8,40,body);r(72,30,8,40,body);
+  r(36,12,7,4,'#e8e8e8');r(53,12,7,4,'#e8e8e8');if(t%3===0){r(36,12,7,4,'#777');r(53,12,7,4,'#777')}
+  // 창살
+  for(let x=4;x<W;x+=8)r(x,0,3,72,'#9a9aa8');r(0,48,W,3,'#9a9aa8');r(0,20,W,3,'#9a9aa8');
+  // 작은 사람(JACK)
+  person(45,56,true);
+};
+ART.eyeEnding=(t)=>{
+  r(0,0,W,H,'#020202');
+  const cx=48,cy=34,ballR=30;
+  const irisR=11,pupilR=4;
+  const [ox,oy]=pupilOffset(t);
+  const icx=cx+ox,icy=cy+oy;
+
+  const bgrad=g.createRadialGradient(cx-ballR*0.35,cy-ballR*0.35,ballR*0.1,cx,cy,ballR*1.15);
+  bgrad.addColorStop(0,'rgba(235,235,235,0.95)');
+  bgrad.addColorStop(0.5,'rgba(190,190,190,0.95)');
+  bgrad.addColorStop(0.85,'rgba(120,120,120,0.9)');
+  bgrad.addColorStop(1,'rgba(40,40,40,0.9)');
+  g.fillStyle=bgrad;g.beginPath();g.arc(cx,cy,ballR,0,Math.PI*2);g.fill();
+
+ g.save();
+  g.beginPath();g.arc(cx,cy,ballR,0,Math.PI*2);g.clip();
+  const sock=g.createRadialGradient(icx,icy,irisR*0.5,cx,cy,ballR*0.95);
+  sock.addColorStop(0,'rgba(0,0,0,0)');
+  sock.addColorStop(1,'rgba(0,0,0,0.3)');
+  g.fillStyle=sock;g.fillRect(0,0,W,H);
+
+  const ig=g.createRadialGradient(icx,icy,pupilR*0.8,icx,icy,irisR);
+  ig.addColorStop(0,'rgba(135,135,135,0.95)');
+  ig.addColorStop(0.5,'rgba(90,90,90,0.95)');
+  ig.addColorStop(1,'rgba(45,45,45,0.95)');
+  g.fillStyle=ig;g.beginPath();g.arc(icx,icy,irisR,0,Math.PI*2);g.fill();
+
+  g.save();g.beginPath();g.arc(icx,icy,irisR,0,Math.PI*2);g.clip();
+  const N=60;
+  for(let i=0;i<N;i++){
+    const ang=(i/N)*Math.PI*2+hashE(i*13)*0.03;
+    const rStart=pupilR*0.95+hashE(i*7)*1.1;
+    const rEnd=irisR*(0.6+hashE(i*11)*0.4);
+    const xA=icx+Math.cos(ang)*rStart,yA=icy+Math.sin(ang)*rStart;
+    const xB=icx+Math.cos(ang)*rEnd,yB=icy+Math.sin(ang)*rEnd;
+    const bright=0.25+hashE(i*23)*0.55;
+    const gv=Math.round(180*bright+40);
+    g.strokeStyle='rgba('+gv+','+gv+','+gv+',0.85)';
+    g.lineWidth=0.3+hashE(i*29)*0.3;
+    g.beginPath();g.moveTo(xA,yA);g.lineTo(xB,yB);g.stroke();
+  }
+  g.strokeStyle='rgba(150,150,150,0.25)';g.lineWidth=0.3;
+  g.beginPath();g.arc(icx,icy,irisR*0.75,0,Math.PI*2);g.stroke();
+  for(let c=0;c<7;c++){
+    const ca=hashE(c*41)*Math.PI*2;
+    const cr2=irisR*(0.5+hashE(c*43)*0.4);
+    const cx2=icx+Math.cos(ca)*cr2,cy2=icy+Math.sin(ca)*cr2;
+    const sz=0.5+hashE(c*47)*1.1;
+    g.fillStyle='rgba(10,10,10,'+(0.3+hashE(c*53)*0.4)+')';
+    g.beginPath();g.ellipse(cx2,cy2,sz,sz*0.7,ca,0,Math.PI*2);g.fill();
+  }
+  g.restore();
+  g.restore();
+
+  g.fillStyle='rgba(2,2,2,0.98)';
+  g.beginPath();g.arc(icx,icy,pupilR,0,Math.PI*2);g.fill();
+
+  g.fillStyle='rgba(255,255,255,0.5)';
+  g.beginPath();g.ellipse(icx-2.2,icy-2.6,0.9,1.3,0.3,0,Math.PI*2);g.fill();
+
+  const hcx=cx,hcy=H+4,hrx=14,hry=11;
+  const hg2=g.createRadialGradient(hcx,hcy-hry*0.6,1,hcx,hcy,hrx*1.3);
+  hg2.addColorStop(0,'rgba(95,95,95,0.95)');hg2.addColorStop(1,'rgba(10,10,10,0.95)');
+  g.fillStyle=hg2;g.beginPath();g.ellipse(hcx,hcy,hrx,hry,0,0,Math.PI*2);g.fill();
+  // 철창
+  for(let x=4;x<W;x+=8)r(x,0,3,H,'#9a9aa8');
+  r(0,20,W,3,'#9a9aa8');
+  r(0,48,W,3,'#9a9aa8');
+};
+ART.inventory=()=>{
+  r(0,0,W,72,C.floor);r(0,0,W,72,C.wall2);
+  for(let i=0;i<5;i++){const x=6+i*18;r(x,24,16,22,'#1a1a28');rect(x,24,16,22,C.grey3)}
+  const inv=game.inventory;
+  inv.forEach((it,i)=>{const x=6+i*18;
+    if(it==='contractItem'){r(x+3,28,10,14,C.paper);r(x+5,32,6,1,C.grey);r(x+5,35,6,1,C.grey)}
+    else if(it==='JackidItem'){r(x+2,28,12,14,C.red);r(x+5,32,6,6,C.skin)}
+    else if(it==='KimidItem'){r(x+2,28,12,14,C.blue);r(x+5,32,6,6,C.skin)}
+    else if(it==='pen'){for(let k=0;k<12;k++)px(x+3+k,40-k,C.blue);r(x+14,28,1,1,C.white)}
+    else if(it==='mapMemory'){r(x+2,30,12,8,C.white);disc(x+8,34,2,C.blue);px(x+8,34,C.ink)}
+    else r(x+5,31,6,8,C.yellow);
+  });
+};
+const BIG={
+ M:['10001','11011','10101','10101','10001','10001','10001'],
+ I:['11111','00100','00100','00100','00100','00100','11111'],
+ N:['10001','11001','10101','10101','10011','10001','10001'],
+ A:['01110','10001','10001','11111','10001','10001','10001'],
+ L:['10000','10000','10000','10000','10000','10000','11111'],
+ S:['01111','10000','10000','01110','00001','00001','11110']};
+function bigText(s,x,y,sx,sy,c){for(const ch of s){const gl=BIG[ch];gl.forEach((row,j)=>{for(let i=0;i<5;i++)if(row[i]==='1')r(x+i*sx,y+j*sy,sx,sy,c)});x+=6*sx}}
+ART.title=(t)=>{
+  const Hc=sc.height/S;r(0,0,W,Hc,'#000');
+  const cx=48,cy=Math.round(Hc*0.40),hs=i=>{const s=Math.sin(i*12.9898)*43758.5453;return s-Math.floor(s)};
+  for(let i=0;i<280;i++){                                         // 눈 주변에 흩어지는 먼지
+    const a=hs(i)*Math.PI*2,rr=Math.pow(hs(i+500),.6)*64,fade=1-Math.min(1,rr/64);
+    if(hs(i+900)<fade*.9)px(Math.round(cx+Math.cos(a)*rr),Math.round(cy+Math.sin(a)*rr*.45),'#808080');
+  }
+  if(t%10===9){r(cx-34,cy,68,1,'#bbb');r(cx-30,cy+1,60,1,'#444')}  // 깜빡임
+  else{
+    const look=[0,-4,-4,3,3,6,1,-3][t%8],ix=cx+look,iy=cy;       // 두리번거리는 시선
+    g.save();g.beginPath();g.ellipse(cx,cy,34,14,0,0,Math.PI*2);g.clip();
+    let gr=g.createRadialGradient(cx,cy,2,cx,cy,38);gr.addColorStop(0,'#dcdcdc');gr.addColorStop(.6,'#9a9a9a');gr.addColorStop(1,'#1c1c1c');
+    g.fillStyle=gr;g.fillRect(0,0,W,Hc);
+    gr=g.createRadialGradient(ix,iy,2,ix,iy,11);gr.addColorStop(0,'#3a3a3a');gr.addColorStop(.7,'#707070');gr.addColorStop(1,'#101010');
+    g.fillStyle=gr;g.beginPath();g.arc(ix,iy,11,0,Math.PI*2);g.fill();
+    g.fillStyle='#000';g.beginPath();g.arc(ix,iy,4.5,0,Math.PI*2);g.fill();
+    r(ix-4,iy-4,2,2,'#fff');
+    g.restore();
+    g.strokeStyle='#cfcfcf';g.lineWidth=1;g.beginPath();g.ellipse(cx,cy,34,14,0,Math.PI*1.04,Math.PI*1.96);g.stroke();
+    g.beginPath();g.ellipse(cx,cy,34,14,0,.1,Math.PI-.1);g.stroke();
+  }
+};
+
+/* ---- 렌더 파이프라인 ----
+   아트(192x144) → 블록 뭉개기(후반부) → 비네팅 → 블러 → Atkinson 디더링(1비트) → 잉크 색으로 출력 */
+let artName='black',artTick=0,artExtra={},invertUntil=0,artHint=null;
+function postBlocks(level){                       // 진행될수록 묘사가 줄어든다
+  const b=(level>=0.8?2:1)*S;if(b<=S)return;
+  const w=sc.width,h=sc.height,im=g.getImageData(0,0,w,h),d=im.data;
+  for(let by=0;by<h;by+=b)for(let bx=0;bx<w;bx+=b){
+    let R=0,G=0,B=0,n=0;
+    for(let y=by;y<by+b&&y<h;y++)for(let x=bx;x<bx+b&&x<w;x++){const i=(y*w+x)*4;R+=d[i];G+=d[i+1];B+=d[i+2];n++}
+    R/=n;G/=n;B/=n;
+    for(let y=by;y<by+b&&y<h;y++)for(let x=bx;x<bx+b&&x<w;x++){const i=(y*w+x)*4;d[i]=R;d[i+1]=G;d[i+2]=B}
+  }
+  g.putImageData(im,0,0);
+}
+function vignette(level){
+  const w=sc.width,h=sc.height;
+  const gr=g.createRadialGradient(w/2,h/2,Math.min(w,h)*.18,w/2,h/2,Math.hypot(w,h)*.5);
+  gr.addColorStop(0,'rgba(0,0,0,0)');gr.addColorStop(1,'rgba(0,0,0,'+(0.6+0.25*level).toFixed(2)+')');
+  g.fillStyle=gr;g.fillRect(0,0,w,h);
+}
+function inkFor(level){
+  if(artName==='window')return[196,42,30];                                   // 붉은 하늘
+  if(artName==='doorAnim'&&artExtra.frame>=1&&artExtra.frame<=3)return[210,36,26];   // 문 밖은 붉다
+  if(artName==='title')return[232,232,232];
+  const a=[236,226,204],b=[236,240,246];                                      // 일상(따뜻한 흰색) → 차가운 흰색
+  return a.map((v,i)=>Math.round(v+(b[i]-v)*level));
+}
+const LIFT={office:.1,gate:.15,gateOpen:.15,elevatorIn:.2,elevatorOpen:.12,store:.12,counter:.1,shelf:.05,watch:.05};   // 어두운 장면만 밝기 보정
+let lumA=null,lumB=null,lumO=null,outImg=null;
+function ditherOut(level){
+  const w=sc.width,h=sc.height,n=w*h,d=g.getImageData(0,0,w,h).data;
+  if(!lumA||lumA.length!==n){lumA=new Float32Array(n);lumB=new Float32Array(n);lumO=new Float32Array(n)}
+  const A=lumA,B=lumB;
+  for(let i=0;i<n;i++){const j=i*4;A[i]=(0.299*d[j]+0.587*d[j+1]+0.114*d[j+2])/255}
+  lumO.set(A);
+  for(let y=0;y<h;y++){const o=y*w;for(let x=0;x<w;x++){B[o+x]=(A[o+(x>0?x-1:x)]+2*A[o+x]+A[o+(x<w-1?x+1:x)])/4}}      // 가로 블러
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){A[y*w+x]=((B[(y>0?y-1:y)*w+x]+2*B[y*w+x]+B[(y<h-1?y+1:y)*w+x])/4)*.5+lumO[y*w+x]*.5}   // 세로 블러(원본과 절반씩)
+  const gamma=.8+.15*level,gain=1.4,ctr=1.1+.3*level,lift=LIFT[artName]||0;
+  for(let i=0;i<n;i++){let v=A[i]>.03?A[i]+lift:A[i];v=Math.pow(v,gamma)*gain;v=(v-.5)*ctr+.5;A[i]=Math.max(0,Math.min(1,v))*255}
+  if(level>=.85){const amp=6*level;for(let i=0;i<n;i++)A[i]+=(Math.random()-.5)*amp}                                   // 필름 그레인
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){                                                                            // Atkinson
+    const i=y*w+x,old=A[i],nv=old>127.5?255:0;A[i]=nv;const e=(old-nv)/8;
+    if(x+1<w)A[i+1]+=e;if(x+2<w)A[i+2]+=e;
+    if(y+1<h){if(x>0)A[i+w-1]+=e;A[i+w]+=e;if(x+1<w)A[i+w+1]+=e}
+    if(y+2<h)A[i+2*w]+=e;
+  }
+  let ink=inkFor(level),bg=[4,4,6];
+  if(performance.now()<invertUntil){const t=ink;ink=bg;bg=t}
+  if(!outImg||outImg.width!==w||outImg.height!==h)outImg=out.createImageData(w,h);
+  const od=outImg.data;
+  for(let i=0;i<n;i++){const c=A[i]>127?ink:bg,j=i*4;od[j]=c[0];od[j+1]=c[1];od[j+2]=c[2];od[j+3]=255}
+  out.putImageData(outImg,0,0);
+}
+function glitch(level){
+  if(level<.5&&performance.now()>=invertUntil)return;
+  if(Math.random()>.12+.35*level)return;
+  const w=cv.width,h=cv.height,n=1+((Math.random()*2)|0);
+  for(let k=0;k<n;k++){const y=(Math.random()*h)|0,hh=Math.min(2+((Math.random()*10)|0),h-y),dx=((Math.random()*16)|0)-8;out.drawImage(cv,0,y,w,hh,dx,y,w,hh)}
+}
+function hexLum(c){if(typeof c!=='string'||c[0]!=='#')return 1;let h=c.slice(1);if(h.length===3)h=h.replace(/./g,m=>m+m);
+  const n=parseInt(h,16);return (0.299*((n>>16)&255)+0.587*((n>>8)&255)+0.114*(n&255))/255}
+function drawHint(){                                                  // 지금 봐야 할 곳을 은은하게 깜박이는 앰버색 모서리
+  if(!artHint||artTick%3===2)return;
+  const [x,y,w,h]=artHint.map(v=>Math.round(v*S)),L=Math.round(5*S);
+  out.fillStyle='rgba(255,210,122,.10)';out.fillRect(x,y,w,h);
+  out.fillStyle='#ffd27a';
+  out.fillRect(x,y,L,2);out.fillRect(x,y,2,L);out.fillRect(x+w-L,y,L,2);out.fillRect(x+w-2,y,2,L);
+  out.fillRect(x,y+h-2,L,2);out.fillRect(x,y+h-L,2,L);out.fillRect(x+w-L,y+h-2,L,2);out.fillRect(x+w-2,y+h-L,2,L);
+}
+function drawCrisp(level){
+  drawHint();
+  const inv=performance.now()<invertUntil;let ink=inkFor(level),bg=[4,4,6];if(inv){const t=ink;ink=bg;bg=t}
+  const css=a=>'rgb('+a[0]+','+a[1]+','+a[2]+')';
+  crisp.forEach(({s,x,y,c,sc})=>{
+    const L=hexLum(c);let fg,halo=false;
+    if(L>=.5){fg=css(ink);halo=true}                                   // 밝은 글자: 잉크색 + 검은 테두리
+    else if(L>=.2){fg='rgb('+ink.map(v=>Math.round(v*.4)).join(',')+')'}   // 흐린 글자
+    else fg=css(bg);                                                   // 어두운 글자
+    const cell=Math.max(1,Math.round(sc*S));let cx=Math.round(x*S);const cy=Math.round(y*S);
+    for(const pass of(halo?[0,1]:[1])){
+      let X=cx;
+      for(const ch of s){const p=FONT[ch];
+        if(p)for(let i=0;i<15;i++)if(p[i]==='1'){
+          const px0=X+(i%3)*cell,py0=cy+((i/3)|0)*cell;
+          if(pass===0){out.fillStyle=css(bg);out.fillRect(px0-1,py0-1,cell+2,cell+2)}
+          else{out.fillStyle=fg;out.fillRect(px0,py0,cell,cell)}
+        }
+        X+=4*cell}
+    }
+  });
+}
+function drawArt(){
+  const fn=ART[artName]||ART.black,lvl=artName==='title'?.3:(game.tone||0);
+  crisp=[];
+  g.setTransform(S,0,0,S,0,0);g.imageSmoothingEnabled=false;
+  fn(artTick,artExtra);
+  g.setTransform(1,0,0,1,0,0);
+  if(artName!=='title'&&artName!=='eyeEnding')postBlocks(lvl);
+  vignette(lvl);
+  ditherOut(lvl);
+  glitch(artName==='title'?.55:lvl);
+  if(artName==='eyeEnding'){
+    const [ox,oy]=pupilOffset(artTick);
+    const rx=(48+ox)*S,ry=(34+oy)*S,rr=4*S*1.3;
+    const rg=out.createRadialGradient(rx,ry,0,rx,ry,rr);
+    rg.addColorStop(0,'rgba(205,25,20,0.9)');
+    rg.addColorStop(0.5,'rgba(150,12,10,0.5)');
+    rg.addColorStop(1,'rgba(150,12,10,0)');
+    out.fillStyle=rg;
+    out.beginPath();out.arc(rx,ry,rr,0,Math.PI*2);out.fill();
+  }
+  drawCrisp(lvl);
+  if(artName==='title'){                                   // 제목은 작고 선명하게 (디더링을 거치지 않음)
+    const Hc=sc.height/S,cy=Math.round(Hc*.4),cell=2,pitch=6,word='MINIMALISM';
+    const x0=Math.round((cv.width-(word.length*pitch-1)*cell)/2),y0=(cy+26)*S;
+    out.fillStyle='#e8e8e8';
+    [...word].forEach((ch,li)=>BIG[ch].forEach((row,j)=>{for(let i=0;i<5;i++)if(row[i]==='1')out.fillRect(x0+(li*pitch+i)*cell,y0+j*cell,cell,cell)}));
+  }
+}
+setInterval(()=>{artTick++;drawArt()},450);
+function titleH(){const R=document.getElementById('stage').getBoundingClientRect();return Math.max(72,Math.round(W*R.height/Math.max(1,R.width)))}
+function setHint(rect){artHint=rect;drawArt()}
+function setArt(name,extra){artName=name;artExtra=extra||{};artTick=0;artHint=null;
+  sc.width=W*S;sc.height=(name==='title'?titleH():H)*S;cv.width=sc.width;cv.height=sc.height;drawArt()}
+
+/* ============================================================
+   3) 게임 상태 / 엔진
+   ============================================================ */
+const game=window.game={inventory:[],last:'',flags:{},directionInput:[],tone:0,seen:{}};
+function resetGame(){
+  game.inventory=[];game.last='';game.directionInput=[];game.tone=0;game.seen={};
+  game.flags={phoneState:0,computerState:0,drawerState:0,doorState:0,idCardState:0,contractbagState:0,newsletterState:0,mapState:0,counterState:0,salesState:0};
+  window.inventory=game.inventory;window.flags=game.flags;
+}
+resetGame();
+
+// 인벤토리 버튼에 보일 이름
+const ITEM_LABEL={contractItem:'계약서',JackidItem:'Jack 사원증',KimidItem:'김정원 사원증',mapMemory:'최적 경로의 기억',pen:'볼펜'};
+
+// --- 원본 데이터 보강 (원본 파일은 건드리지 않고 여기서 패치) ---
+story.directionPassword.answer=['U','R','R','D','L','U','U'];            // 현관문 방향 자물쇠
+story.salesPassword.answer='1459';                                      // 편의점: 사무용품 = 1459 (1·4·5·9)
+story.salesPassword.screen=story.salesPassword.screen.replace('사무용품 : 0439','사무용품 : 1459');
+['elevatorOpen1','elevatorOpen2','elevatorOpen3'].forEach(k=>{story[k].screen='';story[k].dialog=''});   // 엘리베이터 문구 삭제
+story.phoneMemo.screen=story.phoneMemo.screen.replace('11월 25일.','11월 27일.');          // 휴대폰 메모: 생일 수정
+story.counter.screen='잠시 화장실 좀 다녀오겠습니다. 셀프 계산대를 이용해 주세요.\n\n구매를 원하시는 분께서는 아래 메뉴얼을 참고하시어 상품 번호를 입력해주시면 자동으로 결제 처리됩니다.\n\n이용에 불편을 끼쳐드려 죄송합니다.';   // 편의점 쪽지: 군더더기 기호 제거
+Object.values(story).forEach(sc=>{if(typeof sc.screen==='string')sc.screen=sc.screen.replace('체결 10주년','체결 100주년').replace('지난 10년간','지난 100년간')});   // 뉴스레터 표기 통일
+story.start.typing=true;                                                 // 첫 장면 '...눈을 떴다.' 타이핑 효과
+{const P=story.salesPassword.screen.split(/\n*-{10,}\n*/);                 // [구매 메뉴얼, 제품 번호 안내, 용품 구별법]
+  if(P.length===3){const SEP='\n\n---------------------------------------------\n\n';
+    story.salesPassword.screen='\n'+[P[0].trim(),P[2].trim(),P[1].trim()].join(SEP)+'\n'}}   // 용품 구별법을 제품 번호 안내 위로
+story.menual.screen=story.salesPassword.screen;                       // 메뉴얼 본문 재사용(오타 수정본 '사무용품')
+story.menual.choices=[{text:'제품 번호를 입력한다.',next:'salesPassword'}];
+story.pen={inventoryItem:true,screen:'',dialog:'편의점 진열대에서 챙긴 볼펜이다. 아직 계산 전이다.',choices:[{text:'[뒤로]',next:'back'}]};
+story.gateNoId={screen:'',dialog:'태그할 사원증이 없다.\n...서류 가방에 두고 온 게 분명하다. 이대로는 들어갈 수 없다.',choices:[{text:'처음부터 다시',next:'__restart'}]};
+story.elevatorOpen3.autoNext='ending';                                // 임시였던 happyEnding 연결을 규칙 함수로 교체
+
+// ★ 엔딩 분기 규칙 (기획서 기준): 김정원 사원증 → BAD(폐기), JACK 사원증 → HAPPY(미니멀 등록)
+function ENDING(){return game.inventory.includes('KimidItem')?'badEnding':'happyEnding'}
+const ENDING_LABEL={happyEnding:'HAPPY ENDING : 테스트 성공, MINIMAL 상품 등록.',badEnding:'BAD ENDING : 테스트 실패, 폐기 처분.'};
+
+const RESOLVE={
+  phone:()=>['phoneOn','phoneUnlocked'][game.flags.phoneState]||'phoneNormal',
+  computerMap:()=>game.flags.mapState===0?'computerMap':'mapOpened',
+  computer:()=>game.flags.computerState===0?'computer':'computerDesktop',
+  computerEmail:()=>game.flags.newsletterState===0?'computerEmail':'computerEmailAfterDelete',
+  door:()=>(has('mapMemory')&&(has('JackidItem')||has('KimidItem')))?'doorReady':'door',      // 최적 경로의 기억 + 사원증이 있어야 나갈 수 있다
+  contractbag:()=>['contractbag','contractbagOpen'][game.flags.contractbagState]||'contractbagOpened',
+  idCard:()=>game.flags.idCardState===0?'idCard':'idCardTaken',
+  back:()=>game.last||'lookRoom',
+  counter:()=>game.flags.counterState===0?'counter':'counter2',
+  menual:()=>game.inventory.includes('pen')?'menual':'notMenual',
+  sales:()=>game.flags.salesState===0?'sales':'sales2',
+  ending:()=>ENDING()
+};
+
+const SCENE_TONE={
+  computerMap:.12,mapSearch:.12,mapFail:.12,mapSuccess:.12,mapWay:.14,mapOpened:.14,
+  drawer:.2,contractbag:.2,contractbagPassword:.2,contractbagFail:.2,contractbagOpen:.22,contractbagOpened:.22,
+  contract:.22,contractContent:.22,postit:.22,idCard:.24,jackID:.24,kimID:.24,
+  doorReady:.3,directionPassword:.32,directionFail:.32,doorOpen:.36,
+  taxiRide:.6,store:.72,counter:.78,counter2:.78,notMenual:.78,menual:.78,salesPassword:.78,storepasswordFail:.78,sales:.78,sales2:.78,
+  storeOut:.84,office:.9,gate:.95,gateNoId:.95,jackGate:.95,jungwonGate:.95,
+  jackElevator:.97,H_no:.97,jungwonElevator:.97,B_no:.97,elevatorOpen1:.97,elevatorOpen2:.97,elevatorOpen3:.97,
+  happyEnding:1,badEnding:1
+};
+function applyTone(){}   // (톤은 디더링 파이프라인에서 처리: 잉크색·대비·그레인·블록)
+
+// 장면 → 그래픽
+const SCENE_ART={
+  start:'eyes',room:'room',lookRoom:'room',desk:'desk',bed:'bed',
+  phone:'phoneLock',phoneOn:'phoneLock',phonePassword:'phoneLock',phoneFail:'phoneLock',phoneUnlocked:'phoneHome',phoneNormal:'phoneHome',
+  computer:'monitorLogin',computerPassword:'monitorLogin',computerFail:'monitorLogin',computerDesktop:'monitorDesk',newsletterDelete:'monitorGlitch',
+  computerMap:'map',mapSearch:'map',mapFail:'map',mapSuccess:'mapLoading',mapWay:'routes',mapOpened:'routes',mapMemory:'routesMemory',
+  drawer:'drawer',contractbag:'bag',contractbagPassword:'bag',contractbagFail:'bag',contractbagOpen:'bagOpen',contractbagOpened:'bagOpen',idCardTaken:'bagOpen',
+  contract:'papers',idCard:'idcards',jackID:'cardJack',kimID:'cardKim',JackidItem:'cardJack',KimidItem:'cardKim',
+  door:'door',doorReady:'door',directionPassword:'door',directionFail:'door',doorOpen:'doorAnim',window:'window',calendar:'calendar',birthday:'calendarCircle',
+  store:'store',counter:'counter',counter2:'counter',notMenual:'counter',menual:'counter',salesPassword:'counter',storepasswordFail:'counter',sales:'shelf',sales2:'shelf',pen:'shelf',
+  storeOut:'watch',office:'office',gate:'gate',gateNoId:'gate',jackGate:'gateOpen',jungwonGate:'gateOpen',
+  jackElevator:'elevatorIn',H_no:'elevatorIn',jungwonElevator:'elevatorIn',B_no:'elevatorIn',
+  elevatorOpen1:'elevatorOpen',elevatorOpen2:'elevatorOpen',elevatorOpen3:'elevatorOpen',happyEnding:'eyeEnding',badEnding:'eyeEnding',inventory:'inventory'
+};
+// 장면 → 문서(실제 텍스트가 있는 화면). 값 = 문서 스타일
+const SCENE_DOC={
+  phoneMessage:'phone',phoneMemo:'phone',
+  computerEmail:'mail',sarahEmail:'mail',newsletterEmail:'mail',computerEmailAfterDelete:'mail',
+  contractContent:'paper',contractItem:'paper',postit:'postit',counter:'paper',
+  menual:'term',salesPassword:'term',storepasswordFail:'term'
+};
+
+/* ---- 힌트: 가만히 있으면 지금 봐야 할 곳이 은은하게 깜박인다 ---- */
+const HINT_DELAY=6000;                       // 아무것도 안 누르고 이 시간(ms)이 지나면 힌트가 나타난다. 0이면 바로, 아주 크게 하면 사실상 끔.
+const has=k=>game.inventory.includes(k),seen=k=>!!game.seen[k],FL=()=>game.flags;
+function curStage(){                            // 지금 진행 단계에서 다음에 봐야 할 대상
+  if(FL().phoneState===0)return !seen('phoneOn')?'phone':(!seen('birthday')?'calendar':'phone');
+  if(FL().phoneState<2||!seen('phoneMemo'))return 'phone';
+  if(FL().computerState===0)return 'computer';
+  if(!seen('sarahEmail'))return 'computer';
+  if(FL().contractbagState===0||!has('contractItem')||FL().idCardState===0)return 'drawer';
+  if(FL().mapState===0||!has('mapMemory'))return 'computer';
+  return 'door';
+}
+const itemsDone=()=>has('contractItem')&&FL().idCardState===1;
+const contractMenu=()=>!has('contractItem')?'contract':(FL().idCardState===0?'idCard':'desk');
+const HINTS={                                // 장면 → 눌러야 할 선택지의 next 값. (사원증 고르는 idCard, 엘리베이터 층 선택은 엔딩을 가르므로 일부러 힌트 없음)
+  lookRoom:()=>({phone:'desk',computer:'desk',drawer:'desk',calendar:'calendar',door:'door'})[curStage()],
+  desk:()=>({phone:'phone',computer:'computer',drawer:'drawer',calendar:'lookRoom',door:'lookRoom'})[curStage()],
+  phoneOn:()=>seen('birthday')?'phonePassword':'desk',
+  phoneNormal:()=>!seen('phoneMemo')?'phoneMemo':'desk',
+  computer:()=>seen('phoneMemo')?'computerPassword':'desk',
+  computerFail:()=>seen('phoneMemo')?'computerPassword':'computer',
+  computerDesktop:()=>!seen('sarahEmail')?'computerEmail':(itemsDone()&&FL().mapState===0?'computerMap':'desk'),
+  computerEmail:()=>!seen('sarahEmail')?'sarahEmail':'computerDesktop',
+  computerEmailAfterDelete:()=>!seen('sarahEmail')?'sarahEmail':'computerDesktop',
+  sarahEmail:()=>FL().contractbagState===0?'drawer':'computerDesktop',
+  computerMap:()=>has('contractItem')?'mapSearch':'computerDesktop',
+  mapFail:()=>has('contractItem')?'mapSearch':null,
+  mapWay:()=>'door',mapOpened:()=>'door',
+  drawer:()=>'contractbag',
+  contractbag:()=>seen('sarahEmail')?'contractbagPassword':'desk',
+  contractbagFail:()=>seen('sarahEmail')?'contractbagPassword':'desk',
+  contractbagOpen:contractMenu,contractbagOpened:contractMenu,
+  contract:()=>!seen('contractContent')?'contractContent':(!seen('postit')?'postit':null),
+  contractContent:()=>FL().idCardState===0?'idCard':'desk',
+  postit:()=>!has('contractItem')?'contractContent':(FL().idCardState===0?'idCard':'desk'),
+  calendar:()=>seen('birthday')?'lookRoom':'birthday',
+  doorReady:()=>'directionPassword',directionFail:()=>'directionPassword',
+  store:()=>has('pen')?'counter':'sales',
+  counter:()=>has('pen')?'menual':'sales',counter2:()=>has('pen')?'menual':'sales'
+};
+const HINT_REG_ROOM={desk:[62,27,31,27],calendar:[76,6,17,19],door:[32,16,20,32]};          // 그래픽에서 깜박일 영역 [x,y,w,h]
+const HINT_REG_DESK={phone:[74,46,16,24],computer:[12,5,60,40],drawer:[8,55,48,16]};
+let choiceBtns=[];
+function showHint(name,target){
+  const sc=story[name];if(!sc||!sc.choices)return;
+  const i=sc.choices.findIndex(c=>c.next===target);
+  if(i>=0&&choiceBtns[i])choiceBtns[i].classList.add('hint');
+  const reg=name==='lookRoom'?HINT_REG_ROOM:name==='desk'?HINT_REG_DESK:null;
+  if(reg&&reg[target])setHint(reg[target]);
+}
+window.__hintOf=n=>HINTS[n]?HINTS[n]():null;            // 점검용
+
+/* ---- 텍스트 유틸 ---- */
+function dedent(s){
+  const L=s.replace(/\r/g,'').split('\n');
+  while(L.length&&!L[0].trim())L.shift();while(L.length&&!L[L.length-1].trim())L.pop();
+  const ind=Math.min(...L.filter(l=>l.trim()).map(l=>l.match(/^ */)[0].length));
+  return L.map(l=>l.slice(ind)).join('\n');
+}
+function cleanDialog(s){return (s||'').replace(/\r/g,'').split('\n').map(l=>l.trim()).join('\n').replace(/\n{3,}/g,'\n\n').trim()}
+
+const DOC_MARKS={sarahEmail:[
+  ['마지막 영업','\u0001마지막\u0002 \u0003영\u0004업'],['시험','\u0001시험\u0002'],
+  ['이 일에','이 \u0003일\u0004에'],['고객사','고객\u0003사\u0004'],['최소 십 분','최소 \u0003십\u0004 분']]};
+function addMarked(parent,line){
+  let cls=null,buf='';
+  const flush=()=>{if(!buf)return;if(cls){parent.appendChild(mk('span',cls,buf))}else parent.appendChild(document.createTextNode(buf));buf=''};
+  for(const ch of line){
+    if(ch==='\u0001'){flush();cls='bd'}else if(ch==='\u0003'){flush();cls='hl'}
+    else if(ch==='\u0002'||ch==='\u0004'){flush();cls=null}else buf+=ch;
+  }
+  flush();parent.appendChild(document.createTextNode('\n'));
+}
+
+/* ---- DOM ---- */
+const $=id=>document.getElementById(id);
+const stage=$('stage'),docEl=$('doc'),dialogEl=$('dialog'),ctrl=$('controls'),flash=$('flash');
+const btnInv=$('btnInv'),btnRestart=$('btnRestart'),invCount=$('invCount');
+let timers=[],typer=null,locked=false;
+function later(fn,ms){const id=setTimeout(fn,ms);timers.push(id);return id}
+function clearTimers(){timers.forEach(clearTimeout);timers=[];if(typer){clearInterval(typer);typer=null}}
+function mk(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e}
+function button(text,fn,cls='btn'){const b=mk('button',cls,text);b.addEventListener('click',fn);return b}
+
+function showDoc(text,style,sceneName){
+  stage.classList.add('doc');docEl.className=style||'paper';docEl.textContent='';
+  let body=dedent(text);
+  (DOC_MARKS[sceneName]||[]).forEach(([a,b])=>{body=body.replace(a,b)});
+  body.split('\n').forEach(line=>{
+    if(/^\s*([-─━=]){8,}\s*$/.test(line))docEl.appendChild(mk('hr'));
+    else addMarked(docEl,line.replace(/^\s+/,m=>m.length>6?'  ':m));
+  });
+  docEl.scrollTop=0;
+  const upd=()=>stage.classList.toggle('more',docEl.scrollHeight-docEl.scrollTop-docEl.clientHeight>6);
+  docEl.onscroll=upd;upd();
+}
+function hideDoc(){stage.classList.remove('doc','tall','more')}
+
+function setDialog(text,typing,sys){
+  dialogEl.className=sys?'sys':'';dialogEl.scrollTop=0;
+  if(typer){clearInterval(typer);typer=null}
+  const t=cleanDialog(text);
+  if(!typing){dialogEl.textContent=t;return}
+  dialogEl.textContent='';let i=0;
+  const span=mk('span','cur');dialogEl.appendChild(span);
+  typer=setInterval(()=>{span.textContent=t.slice(0,++i);if(i>=t.length){clearInterval(typer);typer=null;span.className=''}},28);
+  dialogEl.onclick=()=>{if(typer){clearInterval(typer);typer=null;dialogEl.textContent=t}};
+}
+
+/* ---- 장면 전환 ---- */
+function go(name){
+  clearTimers();locked=false;
+  if(name==='__restart'){resetGame();return showTitle()}
+  if(RESOLVE[name])name=RESOLVE[name]();
+  const sc=story[name];
+  if(!sc){console.warn('없는 장면:',name);return}
+  game.current=name;game.seen[name]=true;
+  btnRestart.hidden=false;btnInv.hidden=false;invCount.textContent=game.inventory.length;
+  document.getElementById('app').classList.remove('title-mode');
+  { const lv=SCENE_TONE[name]; if(lv!==undefined&&lv>game.tone)game.tone=lv; applyTone(); }
+
+  if(sc.cutscene)return playCutscene(name,sc);
+  if(name==='doorOpen')return playDoorAnim();
+  if(name!=='inventory'&&!sc.inventoryItem)game.last=name;
+  if(sc.flag)game.flags[sc.flag]=sc.value;
+  if(sc.special==='gateCheck'){
+    return go(game.inventory.includes('JackidItem')?'jackGate':game.inventory.includes('KimidItem')?'jungwonGate':'gateNoId');
+  }
+  render(name,sc);
+}
+
+function render(name,sc){
+  // 그래픽 / 문서
+  const docStyle=SCENE_DOC[name];
+  if(docStyle&&sc.screen&&sc.screen.trim()){showDoc(sc.screen,docStyle,name);setArt(SCENE_ART[name]||'black')}
+  else{hideDoc();
+    const ex={};if(name.startsWith('elevatorOpen'))ex.level=+name.slice(-1);
+    if(name==='badEnding')ex.bad=true;
+    setArt(SCENE_ART[name]||'black',ex)}
+  if(name==='newsletterDelete'){stageFlash();invertUntil=performance.now()+650;drawArt()}
+  if(name==='happyEnding'||name==='badEnding')stageFlash(true);
+
+  // 대사
+  let d=sc.dialog;
+  const isEnding=name==='happyEnding'||name==='badEnding';
+  setDialog(d,!!sc.typing||isEnding,isEnding||/^\s*\[/.test(d||''));
+
+  // 조작부
+  ctrl.innerHTML='';
+  if(sc.special==='menual'){/* 아래 일반 선택지로 처리 */}
+  if(sc.inventory){
+    game.inventory.forEach(it=>ctrl.appendChild(button(ITEM_LABEL[it]||it,()=>go(it))));
+    if(!game.inventory.length)ctrl.appendChild(mk('div','',''));
+  }
+  if(sc.keypad)buildKeypad(sc);
+  if(sc.directionPad){game.directionInput=[];buildDirPad(sc)}
+  choiceBtns=[];
+  (sc.choices||[]).forEach((ch,i)=>{
+    const sub=sc.keypad||sc.directionPad||/^\[?뒤로|취소/.test(ch.text);
+    const b=button(ch.text.trim(),()=>choose(ch),'btn'+(sub?' sub':''));
+    choiceBtns[i]=b;ctrl.appendChild(b);
+  });
+  { const hn=HINTS[name]?HINTS[name]():null;if(hn)later(()=>showHint(name,hn),HINT_DELAY) }
+  if(isEnding){
+    later(()=>{ctrl.appendChild(mk('div','endlabel',ENDING_LABEL[name]));ctrl.appendChild(button('해설집 보기',()=>showCommentary(name),'btn accent'));ctrl.appendChild(button('후기 남기기',()=>window.open('https://forms.gle/NozwrLzqj3hXRE7SA','_blank'),'btn'));ctrl.appendChild(button('처음부터 다시 하기',()=>go('__restart'),'btn'))},4200);
+  }
+  if(sc.special==='menual'){
+    ctrl.innerHTML='';
+    const fixed=story.salesPassword.screen;
+    showDoc(fixed.replace('사무용품','사살용품'),'term');
+    later(()=>{showDoc(fixed,'term');stageFlash();ctrl.appendChild(button(sc.choices[0].text,()=>choose(sc.choices[0]),'btn'))},2000);
+  }
+  if(sc.autoNext){locked=true;later(()=>go(sc.autoNext),sc.delay||1000)}
+}
+function choose(ch){
+  if(ch.item)addItem(ch.item);
+  if(ch.flag)game.flags[ch.flag]=ch.value;
+  go(ch.next);
+}
+function addItem(it){if(!game.inventory.includes(it)){game.inventory.push(it);invCount.textContent=game.inventory.length;
+  invCount.parentElement.animate([{transform:'scale(1.35)'},{transform:'scale(1)'}],{duration:300})}}
+
+function stageFlash(slow){
+  flash.style.transition='none';flash.style.opacity=slow?1:.9;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{flash.style.transition='opacity '+(slow?1.6:.5)+'s';flash.style.opacity=0}));
+}
+
+/* ---- 비밀번호 입력 ---- */
+const norm=s=>String(s).replace(/\s+/g,'').toUpperCase();
+function buildKeypad(sc){
+  const numeric=/^\d+$/.test(sc.answer);
+  let val='';
+  const check=()=>{
+    if(norm(val)===norm(sc.answer)){
+      if(sc.state)game.flags[sc.state]=1;
+      else if(sc.success==='phoneUnlocked')game.flags.phoneState=1;   // 원본 버그 수정: 폰 잠금 해제 상태 저장
+      go(sc.success);
+    }else{
+      ctrl.classList.remove('shake');void ctrl.offsetWidth;ctrl.classList.add('shake');
+      later(()=>go(sc.fail),350);
+    }
+  };
+  if(numeric){
+    const masked=false;                                  // 입력한 숫자를 그대로 보여준다
+    const disp=mk('div','disp','·'.repeat(0));
+    const paint=()=>{disp.textContent=val?(masked?'●'.repeat(val.length):val):' ';};
+    paint();ctrl.appendChild(disp);
+    const pad=mk('div','pad');
+    ['1','2','3','4','5','6','7','8','9','⌫','0','OK'].forEach(k=>{
+      pad.appendChild(button(k,()=>{
+        if(k==='⌫')val=val.slice(0,-1);
+        else if(k==='OK')return check();
+        else if(val.length<(sc.maxLength||20))val+=k;
+        paint();
+      },'btn'+(k==='OK'?' accent':'')));
+    });
+    ctrl.appendChild(pad);
+  }else{
+    const inp=mk('input','txt');inp.type='text';inp.maxLength=sc.maxLength||50;inp.placeholder=sc.placeholder||'';
+    inp.autocomplete='off';inp.autocapitalize='off';inp.spellcheck=false;
+    inp.addEventListener('input',()=>val=inp.value);
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter'){val=inp.value;check()}});
+    ctrl.appendChild(inp);
+    ctrl.appendChild(button('확인',()=>{val=inp.value;check()},'btn accent'));
+  }
+}
+
+/* ---- 방향 입력(문) ---- */
+const ARROW={U:'↑',D:'↓',L:'←',R:'→'};
+function buildDirPad(sc){
+  const disp=mk('div','dirdisp','[ ]');
+  const paint=()=>{disp.textContent='[ '+game.directionInput.map(x=>ARROW[x]).join(' ')+' ]'};
+  ctrl.appendChild(disp);
+  const grid=mk('div','dir');
+  const add=(label,v)=>grid.appendChild(button(label,()=>{game.directionInput.push(v);paint()}));
+  grid.appendChild(mk('span'));add('↑','U');grid.appendChild(mk('span'));
+  add('←','L');add('↓','D');add('→','R');
+  ctrl.appendChild(grid);
+  const row=mk('div','row');
+  row.appendChild(button('지우기',()=>{game.directionInput=[];paint()},'btn sub'));
+  row.appendChild(button('확인',()=>{
+    const ok=JSON.stringify(game.directionInput)===JSON.stringify(sc.answer);
+    game.directionInput=[];
+    if(ok)go('doorOpen');else{ctrl.classList.remove('shake');void ctrl.offsetWidth;ctrl.classList.add('shake');later(()=>go('directionFail'),350)}
+  },'btn accent'));
+  ctrl.appendChild(row);
+}
+
+/* ---- 문 열림 애니메이션 ---- */
+function playDoorAnim(){
+  hideDoc();ctrl.innerHTML='';setDialog('');locked=true;
+  let f=0;setArt('doorAnim',{frame:0});
+  const step=()=>{f++;if(f>4){later(()=>go('taxiRide'),900);return}setArt('doorAnim',{frame:f});later(step,700)};
+  later(step,700);
+}
+
+/* ---- 컷신(택시) ---- */
+function playCutscene(name,sc){
+  hideDoc();let i=0;
+  const show=()=>{
+    setArt('taxi',{stage:i});setDialog(sc.dialogs[i]);
+    ctrl.innerHTML='';
+    ctrl.appendChild(button((sc.buttons&&sc.buttons[i]||'다음').trim(),()=>{
+      i++;if(i>=sc.frames.length){go(sc.next)}else show();
+    },'btn'));
+  };
+  show();
+}
+
+/* ---- 해설집 ---- */
+const COMMENTARY=[
+ {h:'프롤로그',p:[
+  '세상이 뒤숭숭하다. 사실 그런 지는 꽤 되었다. 외계인이니 뭐니 하는 음모론이 전 세계적으로 판을 치니까. 쩝, 그런 걸 누가 믿는다고 이렇게 극성인 건지. 출근길에 매일같이 보이는 저 1인 시위 피켓을 볼 때마다 내 기분도 덩달아 싱숭생숭해진다. 뉴스에서도 음모론을 다룰 건 뭐람, 전부 먹잇감 던져 주는 꼴인데.',
+  '그럼에도 나, 김정원은 오늘도 출근을 했다. 어쨌든 돈은 벌어야 하니까…',
+  '회식이 조금 길어졌다. 간만에 술도 꽤 마셨다. 전에는 이렇게 취하지 않았던 것 같은데, 빨리 집에 들어가 쉬어야겠다… 눈이 그물그물하다.',
+  '…아, 숙취. 여기가… 그래, 내 방이다. 오늘따라 왜 이리 어색하게 느껴지는지는 모르겠다만.',
+  '이럴 때가 아니다. 얼른… 출근할 준비를 해야 한다. 그런데, 내가 폰을 어디에 뒀더라.']},
+ {h:'세계관',p:[
+  '30XX년, 인류는 지구를 침략한 ■■■에게 단숨에 함락당했다. 인구의 80%가 사망했고, 살아남은 이들은 겨우 평화협정을 맺어 허가된 구역 안에서 삶을 이어 가고 있다.',
+  '더 이상 이전과 같지 않은 세상에서, ■■■는 인구의 ‘20%’를 유지하기 위해 매년 만 30세가 되는 이들 중 일정 비율을 뽑아 ‘애완인간’으로 삼는다. 모든 적합 판정을 마친 인간은 마지막으로 ‘정신 교육 과정’을 거치는데, 이때 ‘자신의 전생’, 즉 인간이었던 시절을 기억하는 이는 ‘불량 판정’을 받고 그대로 처분된다.']},
+ {h:'이 방의 정체',p:[
+  '주인공이 눈을 뜬 곳은 자신의 방이 아니었다. ■■■는 인간의 지능을 시험하기 위해 외딴 방에 가두어 두었고, 그 방은 주인공의 방과 비슷하되 어딘가 이질감이 느껴지도록 꾸며져 있었다.',
+  '시험이 시작되기 전, 주인공의 진짜 정보는 수첩에 빠짐없이 적혀 있었다. 방 안에서는 그 정보가 조금씩 바뀐 채로 주어졌다. 주인공은 바뀐 정보를 모으며 ■■■의 주입에 서서히 세뇌당하거나, 끝까지 자신의 신념을 지키며 방을 빠져나가야 했다.']},
+ {h:'주인공, 김정원',p:[
+  {t:'32세(만 30세)',tight:1},
+  {t:'11월 27일생',tight:1},
+  {t:'B형',tight:1},
+  {t:'(주) 커넥트에이전트 영업부 사원',tight:1},
+  '취미는 노래 듣기. 즐겨 듣는 곡은 Sting의 ‘Englishman In New York’.']},
+ {h:'‘미니멀’이 되기 위한 조건',p:[
+  '‘미니멀’이 되려면 아래 네 가지 조건을 갖추어야 한다.',
+  {t:'1. 신체 능력이 뛰어나야 한다.',tight:1},
+  {t:'2. 순종적이어야 한다. 이상한 미션이 주어지더라도 우선은 진행하고 보는 면모가 요구된다.',tight:1},
+  {t:'3. 냉철해야 한다.',tight:1},
+  '4. 인간이었던 시절의 기억을 부정해야 한다. ▶ 해당 조건을 확인하기 위해 테스트 진행']},
+ {h:'이스터에그 - 흘려둔 단서',p:[
+  '엔딩에 이르기 전까지 플레이어는 이 세계의 진실을 알 수 없어야 했다. 다만 곳곳에 이 세계관을 어렴풋이나마 유추할 수 있는 이스터에그를 숨겨두었다.',
+  {t:'· 첫 화면의 ‘나는 누구지?’: 실제 김정원의 정보를 확인할 수 있는 수첩이 있다. 이는 처음 화면에서만 확인 가능하기에, ‘나는 누구지?’ 선택지를 눈치채지 못한 플레이어들은 김정원의 실체를 알기 어려울 터였다.',li:1},
+  {t:'· 어긋난 정보: 달력에 표시된 생일은 3월 17일이었고 휴대폰 비밀번호도 그 날짜였지만, 실제 생일은 11월 27일이다. 실제 핸드폰 메모장의 맨 윗부분에도 ‘11월 27일. 잊지 말자…’ 라는 문장이 존재한다.',li:1},
+  {t:'· ‘Jack’: ■■■가 김정원을 MINIMAL로 만들기 위해, 최종 테스트를 진행하며 붙인 가명이다.',li:1},
+  {t:'· 14:60: 처음 핸드폰을 켰을 때 보이는 문자, 치과 예약 시간이 14:60이었다. ■■■는 1시간이 100분이다.',li:1},
+  {t:'· 붉은 하늘: ■■■이 침공한 이후 전쟁의 여파로 더 이상 푸른 하늘은 볼 수 없게 되었다.',li:1},
+  {t:'· 새어 나온 말: 사라의 메일에는 ‘Jack의 시험 통과’라는 표현이 섞여 있었다. 이 모든 과정이 하나의 시험이었음을 암시 문장이다.',li:1}]},
+ {h:'두 개의 엔딩',p:[
+  '마지막 관문에서는 진짜 개인정보가 적힌 ‘김정원’ 사원증과 바뀐 개인정보가 적힌 ‘Jack’ 사원증이 주어지며, 어느 쪽을 인식 단말기에 대는지에 따라 엔딩이 갈린다.',
+  {end:'happyEnding',t:'Jack 사원증: 주입된 정보를 받아들여 애완인간으로 거듭나는 엔딩이다. 시험 통과와 동시에 주인공은 영영 ‘김정원’으로서의 자신을 잃는다.'},
+  {end:'badEnding',t:'김정원 사원증: 자신에 대한 정보를 끝까지 잊지 않았기에 세뇌에 실패했고, 불량 판정을 받아 처분되는 엔딩이다. 결말은 비참하지만, 주인공은 마지막까지 ‘김정원’으로 남는다.'}]}
+];
+function showCommentary(endName){
+  clearTimers();
+  btnInv.hidden=true;setArt('black');
+  stage.classList.add('doc','tall');docEl.className='guide';docEl.textContent='';
+  docEl.appendChild(mk('div','g-title','해설집'));docEl.appendChild(mk('div','g-sub','MINIMALISM'));
+  COMMENTARY.forEach(sec=>{
+    docEl.appendChild(mk('div','g-h',sec.h));
+    sec.p.forEach(x=>{const o=typeof x==='string'?{t:x}:x;const cls=[o.end&&o.end===endName?'cur':'',o.tight?'tight':'',o.li?'li':''].filter(Boolean).join(' ');docEl.appendChild(mk('p',cls,o.t))});
+  });
+  docEl.scrollTop=0;
+  const upd=()=>stage.classList.toggle('more',docEl.scrollHeight-docEl.scrollTop-docEl.clientHeight>6);
+  docEl.onscroll=upd;upd();
+  setDialog('');
+  ctrl.innerHTML='';
+  ctrl.appendChild(button('후기 남기기',()=>window.open('https://forms.gle/NozwrLzqj3hXRE7SA','_blank'),'btn'));
+  ctrl.appendChild(button('처음부터 다시 하기',()=>go('__restart'),'btn accent'));
+}
+
+/* ---- 타이틀 ---- */
+function showTitle(){
+  clearTimers();hideDoc();
+  document.getElementById('app').classList.add('title-mode');
+  btnRestart.hidden=true;btnInv.hidden=true;
+  setArt('title');setDialog('');
+  ctrl.innerHTML='';
+  ctrl.appendChild(button('눈을 뜬다',()=>go('start'),'btn accent'));
+  ctrl.appendChild(button('나는 누구지?',showProfile,'btn ghost'));
+}
+const PROFILE=`김정원
+32살
+11월 27일생
+
+B형
+
+(주) 커넥트에이전트
+영업부 사원
+
+Sting - Englishman In New York`;
+function showProfile(){                                   // 수첩에 적어둔 일기 형식
+  clearTimers();
+  document.getElementById('app').classList.remove('title-mode');
+  btnRestart.hidden=true;btnInv.hidden=true;
+  setArt('black');
+  stage.classList.add('doc','tall');docEl.className='memo';docEl.textContent='';
+  const nb=mk('div','nb');nb.appendChild(mk('div','nb-holes'));
+  const pg=mk('div','nb-page');pg.appendChild(mk('div','nb-tag','MEMO'));pg.appendChild(mk('div','nb-body',PROFILE));
+  nb.appendChild(pg);docEl.appendChild(nb);
+  setDialog('...머리가 아프다.');
+  ctrl.innerHTML='';
+  ctrl.appendChild(button('눈을 뜬다',()=>go('start'),'btn accent'));
+  ctrl.appendChild(button('돌아간다',showTitle,'btn'));
+}
+window.addEventListener('resize',()=>{if(artName==='title')setArt('title')});
+
+/* ---- HUD ---- */
+btnInv.addEventListener('click',()=>{
+  const cur=game.current;
+  if(locked||!cur||cur==='inventory'||story[cur]&&(story[cur].cutscene||story[cur].autoNext)||cur==='happyEnding'||cur==='badEnding')return;
+  go('inventory');
+});
+btnRestart.addEventListener('click',()=>{if(confirm('처음부터 다시 시작할까요?'))go('__restart')});
+
+// 디버그(원본과 동일): 콘솔에서 debug('computerDesktop') / state('mapState',1)
+window.debug=n=>go(n);
+window.state=(k,v)=>{game.flags[k]=v};
+window.__art=setArt;window.__setClock=v=>{CLOCK=v};
+
+showTitle();
+})();
+</script>
+</body>
+</html>
